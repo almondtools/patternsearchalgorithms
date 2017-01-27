@@ -1,0 +1,176 @@
+        <!DOCTYPE html>
+      <html lang="en">
+                <head>
+                  <meta charset="utf-8"/>
+              <meta name="google-site-verification" content="zi2eDd9lPMxUKII5BagZe7uZLJdM-xwB3MYmn7At8m4"/>
+              <meta name="google-site-verification" content="1tr9mxi3jNPA21quNokfjk011xmqU4KEYwxceZ4nPQg"/>
+              <meta name="msvalidate.01" content="126AC9C6E2D2542FF635FD81D91FBF19"/>
+              <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"/>
+              <link rel="stylesheet" href="custom.css"/>
+              <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.0.0/styles/default.min.css"/>
+                  <title>PatternSearchAlgorithms - Efficient Regular Expression Search and Matching in Java</title>
+      <meta name="description" content="PatternSearchAlgorithms provides highly efficient algorithms for pattern (regular expression) search. PatternSearchAlgorithms supports search in Strings, char-arrays, byte-arrays, InputStreams, Readers and Buffers."/>
+      <meta name="keywords" content="pattern matching,pattern search,regular expression,dfa,nfa,algorithm,Java,efficient,performance"/>
+      <link rel="canonical" href="http://patternsearchalgorithms.amygdalum.net"/>
+  </head>
+            <body>
+                    <header>
+                              <nav class="navbar navbar-dark bg-dark navbar-expand-sm" role="navigation">
+      <div class="container-fluid">
+                  <div class="navbar-header">
+              <button type="button" class="navbar-toggler" data-toggle="collapse" data-target=".navbar-collapse">
+                  <span class="navbar-toggler-icon"></span>
+  </button>
+          <a href="download.html" class="navbar-brand">
+    Pattern Search Algorithms
+  </a>
+  </div>
+              <div class="collapse navbar-collapse">
+      <ul class="navbar-nav">
+              <li class="nav-item active">  <a class="nav-link" href="index.html">
+    Home
+  </a></li>
+          <li class="nav-item">  <a class="nav-link" href="download.html">
+    Get it!
+  </a></li>
+          <li class="nav-item">  <a class="nav-link" href="license.html">
+    License
+  </a></li>
+  </ul>
+  </div>
+  </div>
+  </nav>
+                        <div class="jumbotron">
+      <div class="container">
+              <h1>Pattern Search Algorithms</h1>
+          <p>PatternSearchAlgorithms provides highly efficient algorithms for pattern (regular expression) search. PatternSearchAlgorithms supports search in Strings, char-arrays, byte-arrays, InputStreams, Readers and Buffers.</p>
+          <p>  <a href="download.html" class="btn btn-primary">
+    Get Pattern Search Algorithms
+  </a>   <a href="https://github.com/almondtools/patternsearchalgorithms" class="btn btn-light">
+    Github
+  </a></p>
+  </div>
+  </div>
+  </header>
+              <main>
+      <div class="container">
+                  <section class="page-section">
+              <h2>Why should I use Pattern Search Algorithms?</h2>
+              <section class="page-section">
+              <div class="row">
+                  <div class="order-2 col-lg-4">
+                
+  </div>
+              <div class="order-1 col-lg-8">
+                      <p>                    PatternSearchAlgorithms provides high efficient regular expression search and matching through using a deterministic finite automaton (DFA). 
+                    It does not provide features as group capturing, matching modes or backreferences. It is just efficient for complex patterns and large texts. 
+                    The match time of such an automaton is linear dependent on the number of chars to match (  <strong>O(n)</strong>, where n = number of chars to match).
+
+                    Common regex packages (as provided by the JDK) use nondeterministic automatons (NFA) to capture the regular expression, allowing several special 
+                    features but implying low performance on complex patterns and large texts. The match time of an NFA based solution is dependent on the nodes in 
+                    the automaton and the chars to match (  <strong>O(m^2*n)</strong>, where m = number of automaton nodes, n = number of chars to match).</p>
+  </div>
+  </div>
+  </section>
+  </section>
+              <section class="page-section">
+              <h2>Usage</h2>
+              <div class="row">
+              <div class="order-2 col-lg-4">
+                      <div class="card info-card">
+              <div class="card-header">
+      <h4 class="panel-title">Available PatternOptions:</h4>
+  </div>
+          <div class="card-body">
+                          <code >Pattern.compile</code> allows us to pass a varargs argument of       <code >PatternOption</code>s. The current available options are:   <ul>
+                          <li>      <code >OptimizationTarget.MATCH</code> for fast matching and       <code >OptimizationTarget.SEARCH</code> for fast searching</li>  
+                      <li>      <code >RegexOption.DOTALL</code> to make the dot match all characters (by default it does not match line endings)</li>  
+                      <li>      <code >CharsetOption</code> to specify the charset to be matched</li>
+                      <li>      <code >SearchMode</code> to specify the search variant (default is longest non overlapping)</li>
+  </ul>    
+  </div>
+  </div>
+  </div>
+          <div class="order-1 col-lg-8">
+                  <h3>Matching Patterns:</h3>
+              <p>                Matching regular expressions is similar to matching with the JDK. Just use       <code >Pattern.compile</code> with       <code >OptimizationTarget.MATCH</code>.
+                
+                      <div>
+      <pre><code class="java"> Pattern pattern = Pattern.compile(&quot;(more|less) efficient&quot;, OptimizationTarget.MATCH);
+ 
+ Matcher matcher = pattern.matcher(&quot;more efficient&quot;);
+ System.out.prinltn(&quot;matches: &quot; + matcher.matches()); // matches:true
+ 
+ ...
+ 
+ Matcher matcher = pattern.matcher(&quot;patternsearchalgorithms is more efficient than java.util.regex&quot;);
+ System.out.prinltn(&quot;matches: &quot; + matcher.matches()); // matches:false</code></pre>
+  </div></p>
+  </div>
+  </div>
+              <div class="row">
+              <div class="order-2 col-lg-4">
+            
+  </div>
+          <div class="order-1 col-lg-8">
+                  <h3>Searching Patterns:</h3>
+              <p>                Searching regular expressions is similar to matching with the JDK. Just use       <code >Pattern.compile</code> with       <code >OptimizationTarget.SEARCH</code>.
+                
+                      <div>
+      <pre><code class="java"> Pattern pattern = Pattern.compile(&quot;(more|less) efficient&quot;, OptimizationTarget.SEARCH);
+ 
+ Finder matcher = pattern.matcher(&quot;patternsearchalgorithms is more efficient than java.util.regex&quot;);
+ while (matcher.find()) {
+     System.out.println(&quot;found text = &quot; + matcher.match.text()); // found text = more efficient
+     System.out.println(&quot;at = &quot; + matcher.match.start()); // at = 27
+     System.out.println(&quot;to = &quot; + matcher.match.end()); // to = 14
+ }
+ 
+ ...
+ 
+ Finder matcher = pattern.matcher(&quot;patternsearchalgorithms is more efficient than java.util.regex&quot;);
+ for (Match match : matcher.findAll()) {
+     System.out.println(&quot;found text = &quot; + match.text()); // found text = more efficient
+     System.out.println(&quot;at = &quot; + match.start()); // at = 27
+     System.out.println(&quot;to = &quot; + match.end()); // to = 14
+ }</code></pre>
+  </div></p>
+  </div>
+  </div>
+  </section>
+              <section class="page-section">
+              <h2>Benchmarks</h2>
+          <div class="row">
+                  <div class="col-lg-8">
+                          <p>        To keep track of the performance of each algorithm we created the benchmark project   <a href="https://github.com/almondtools/regexbench/">
+    RegexBench
+  </a>.</p>
+      <p>          <strong>RegexBench</strong> compares all available algorithms (of   <strong>Pattern Search Algorithms</strong> and other libraries) is planned to benchmark regular expression search
+        in realistic scenarios.</p> 
+  </div>
+              <div class="col-lg-4">
+                
+  </div>
+  </div>
+  </section>
+              <section class="page-section">
+              <div class="row">
+                  <div class="order-2 col-lg-4">
+                
+  </div>
+              <div class="order-1 col-lg-8">
+                      <h2>Authors</h2>
+                  <p>  <a href="http://www.amygdalum.net">
+    Stefan Mandel
+  </a></p>
+  </div>
+  </div>
+  </section>
+  </div>
+  </main>
+              <script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
+              <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+              <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.0.0/highlight.min.js"></script>
+              <script>hljs.initHighlightingOnLoad()</script>
+  </body>
+  </html>

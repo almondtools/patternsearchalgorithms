@@ -13,7 +13,7 @@ public class EpsilonTransition extends AbstractTransition {
 	
 	@Override
 	public String toString() {
-		return "-> " + System.identityHashCode(getTarget());
+		return "-> " + getTarget().getId();
 	}
 
 }

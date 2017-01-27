@@ -2,6 +2,7 @@ package net.amygdalum.patternsearchalgorithms.nfa;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Queue;
 import java.util.Set;
 
 import net.amygdalum.util.builders.HashSets;
@@ -45,7 +46,7 @@ public class NFAMatcher {
 
 	private Set<Record> epsilonClosure(State state, Groups groups) {
 		Set<Record> epsilons = HashSets.of(new Record(state, groups));
-		WorkSet<EpsilonTransition> todo = new WorkSet<>();
+		Queue<EpsilonTransition> todo = new WorkSet<>();
 		todo.addAll(state.epsilons());
 		while (!todo.isEmpty()) {
 			EpsilonTransition epsilon = todo.remove();

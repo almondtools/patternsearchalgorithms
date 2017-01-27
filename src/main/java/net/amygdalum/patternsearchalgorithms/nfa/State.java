@@ -2,9 +2,11 @@ package net.amygdalum.patternsearchalgorithms.nfa;
 
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 
 import net.amygdalum.util.tuples.Pair;
 import net.amygdalum.util.worklist.WorkSet;
@@ -22,6 +24,10 @@ public class State implements Cloneable {
 		transitions = new ArrayList<>(transitionCount);
 	}
 
+	public int getId() {
+		return System.identityHashCode(this);
+	}
+
 	public void accept() {
 		this.accept = true;
 	}
@@ -36,6 +42,20 @@ public class State implements Cloneable {
 
 	public void addTransition(Transition transition) {
 		transitions.add(transition);
+	}
+
+	public void removeTransition(Transition transition) {
+		transitions.remove(transition);
+	}
+
+	public List<OrdinaryTransition> ordinaries() {
+		List<OrdinaryTransition> next = new ArrayList<>();
+		for (Transition transition : transitions) {
+			if (transition instanceof OrdinaryTransition) {
+				next.add((OrdinaryTransition) transition);
+			}
+		}
+		return next;
 	}
 
 	public List<OrdinaryTransition> nexts(byte b) {
@@ -56,6 +76,14 @@ public class State implements Cloneable {
 			}
 		}
 		return epsilons;
+	}
+
+	public Set<State> reachableStates() {
+		Set<State> states = new LinkedHashSet<>();
+		for (Transition transition : transitions) {
+			states.add(transition.getTarget());
+		}
+		return states;
 	}
 
 	public Map<State, State> cloneTree() {
@@ -85,7 +113,7 @@ public class State implements Cloneable {
 	@Override
 	public String toString() {
 		StringBuilder buffer = new StringBuilder();
-		buffer.append(System.identityHashCode(this)).append(" {\n");
+		buffer.append(getId()).append(" {\n");
 		for (Transition transition : transitions) {
 			buffer.append(transition.toString()).append('\n');
 		}

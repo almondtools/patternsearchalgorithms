@@ -26,7 +26,7 @@ public class ByteTransition extends OrdinaryTransition {
 
 	@Override
 	public String toString() {
-		return "-{" + event + "}-> " + System.identityHashCode(getTarget());
+		return "-{" + event + "}-> " + getTarget().getId();
 	}
 
 }

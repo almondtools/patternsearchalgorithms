@@ -75,7 +75,7 @@ public class NFABuilder implements RegexNodeVisitor<PartialNFA> {
 	}
 
 	private void connect(State s, State e, char value) {
-		connect(s, e, encode(value, charset));
+		connect(s, e, encode(charset, value));
 	}
 
 	private void connect(State s, State e, byte[] bytes) {

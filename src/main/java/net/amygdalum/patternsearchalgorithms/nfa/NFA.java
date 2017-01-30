@@ -1,20 +1,43 @@
 package net.amygdalum.patternsearchalgorithms.nfa;
 
+import static java.util.Arrays.asList;
+
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 
+import net.amygdalum.util.bits.BitSet;
+import net.amygdalum.util.builders.ArrayLists;
+import net.amygdalum.util.map.BitSetObjectMap;
+import net.amygdalum.util.text.ByteRange;
 import net.amygdalum.util.worklist.WorkSet;
 
 public class NFA {
 
 	private State start;
+	private List<ByteRange> byteRanges;
+	private State[] states;
 	private Charset charset;
 
 	public NFA(State start, Charset charset) {
-		this.start = start;
 		this.charset = charset;
+		init(start);
+	}
+
+	private void init(State start) {
+		this.start = start;
+		this.byteRanges = computeEquivalentByteRanges(start);
+		this.states = enumerateStates(start);
 	}
 
 	public State getStart() {
@@ -35,21 +58,358 @@ public class NFA {
 		return todo.getDone();
 	}
 
+	public Set<State> acceptStates() {
+		Set<State> accept = new LinkedHashSet<>();
+
+		WorkSet<State> todo = new WorkSet<>();
+		todo.add(start);
+		while (!todo.isEmpty()) {
+			State current = todo.remove();
+			if (current.isAccepting()) {
+				accept.add(current);
+			}
+			todo.addAll(current.reachableStates());
+		}
+
+		return accept;
+	}
+
+	public Set<State> liveStates() {
+		Set<State> live = new HashSet<>();
+
+		Map<State, List<Transition>> reachingTransitions = reachingTransitions();
+
+		Queue<State> todo = new WorkSet<>();
+		todo.addAll(acceptStates());
+		while (!todo.isEmpty()) {
+			State current = todo.remove();
+			live.add(current);
+			List<Transition> nexts = reachingTransitions.get(current);
+			if (nexts != null) {
+				for (Transition next : nexts) {
+					todo.add(next.getOrigin());
+				}
+			}
+		}
+
+		return live;
+	}
+
 	public void prune() {
 		eliminateEpsilons();
-		//remove duplicate final states
-		//merge adjacent transitions
+		mergeAdjacentTransitions();
+		eliminateDeadStates();
 	}
 
 	public void determinize() {
 		eliminateEpsilons();
-		//remove duplicate final states
-		//merge adjacent transitions
-		//split overlapping transitions
-		//determinize
-		//totalize
-		//cleanup
-		//minimize
+		mergeAdjacentTransitions();
+		eliminateDeadStates();
+		determinizeStates();
+		eliminateDeadStates();
+		minimizeStates();
+	}
+
+	private void minimizeStates() {
+		Map<State, List<Transition>> reachingTransitions = reachingTransitions();
+
+		//P := {F, Q \ F};
+		List<BitSet> partitions = new LinkedList<>();
+		BitSet accepting = BitSet.empty(states.length);
+		BitSet notaccepting = BitSet.empty(states.length);
+		for (int i = 0; i < states.length; i++) {
+			if (states[i].isAccepting()) {
+				accepting.set(i);
+			} else {
+				notaccepting.set(i);
+			}
+		}
+		if (!accepting.isEmpty()) {
+			partitions.add(accepting);
+		}
+		if (!notaccepting.isEmpty()) {
+			partitions.add(notaccepting);
+		}
+
+		Queue<BitSet> todo = new LinkedList<>();
+		todo.add(accepting);
+		// W := {F};
+
+		// while (W is not empty) do
+		while (!todo.isEmpty()) {
+			// choose and remove a set A from W
+			BitSet current = todo.remove();
+			// for each c in Σ do
+			for (ByteRange range : byteRanges) {
+				byte representative = range.from[0];
+				// let X be the set of states for which a transition on c leads to a state in A
+				BitSet reachingStates = reachingStates(reachingTransitions, current, representative);
+				// for each set Y in P for which X ∩ Y is nonempty and Y \ X is nonempty do
+				if (reachingStates.isEmpty()) {
+					continue;
+				}
+				for (int i = 0; i < partitions.size(); i++) {
+					BitSet partition = partitions.get(i);
+					BitSet intersection = partition.and(reachingStates);
+					BitSet remainder = partition.andNot(reachingStates);
+					if (intersection.isEmpty() || remainder.isEmpty()) {
+						continue;
+					}
+					List<BitSet> newpart = asList(intersection, remainder);
+					// replace Y in P by the two sets X ∩ Y and Y \ X
+					partitions.remove(i);
+					partitions.addAll(i, newpart);
+					i++;
+					// if Y is in W
+					if (todo.contains(partition)) {
+						// replace Y in W by the same two sets
+						todo.remove(partition);
+						todo.addAll(newpart);
+					} else {
+						// if |X ∩ Y| <= |Y \ X|
+						if (intersection.bitCount() <= remainder.bitCount()) {
+							// add X ∩ Y to W
+							todo.add(intersection);
+						} else {
+							// add Y \ X to W
+							todo.add(remainder);
+						}
+					}
+				}
+			}
+		}
+
+		State newstart = mergeStates(partitions);
+		init(newstart);
+	}
+
+	private State mergeStates(List<BitSet> partitions) {
+		Map<State, State> mapping = new IdentityHashMap<>();
+		for (BitSet bits : partitions) {
+			int pos = bits.nextSetBit(0);
+			State representative = states[pos];
+			while (pos > -1) {
+				State state = states[pos];
+				if (state.isAccepting()) {
+					representative.accept();
+				}
+				mapping.put(state, representative);
+				pos = bits.nextSetBit(pos + 1);
+			}
+		}
+
+		State newstart = mapping.get(start);
+		Queue<State> toMap = new WorkSet<>();
+		toMap.add(newstart);
+		while (!toMap.isEmpty()) {
+			State current = toMap.remove();
+			for (Transition transition : current.transitions()) {
+				State target = transition.getTarget();
+				State mappedTarget = mapping.get(target);
+				if (target != mappedTarget) {
+					target = mappedTarget;
+					transition.withTarget(mappedTarget);
+				}
+				toMap.add(target);
+			}
+		}
+		return newstart;
+	}
+
+	private BitSet reachingStates(Map<State, List<Transition>> reachingTransitions, BitSet bits, byte event) {
+		BitSet reachingStates = BitSet.empty(states.length);
+
+		int pos = bits.nextSetBit(0);
+		while (pos > -1) {
+			State state = states[pos];
+			List<Transition> reaching = reachingTransitions.get(state);
+			if (reaching != null) {
+				for (Transition transition : reaching) {
+					if (transition instanceof OrdinaryTransition && ((OrdinaryTransition) transition).accepts(event)) {
+						State origin = transition.getOrigin();
+						reachingStates.set(origin.getId());
+					}
+				}
+			}
+			pos = bits.nextSetBit(pos + 1);
+		}
+		return reachingStates;
+	}
+
+	private void determinizeStates() {
+		BitSetObjectMap<State> dStates = new BitSetObjectMap<State>(null);
+		Queue<BitSet> todo = new WorkSet<>();
+
+		BitSet startbits = BitSet.bits(states.length, start.getId());
+		todo.add(startbits);
+		State dStart = new State();
+		dStates.add(startbits, dStart);
+
+		while (!todo.isEmpty()) {
+			BitSet current = todo.remove();
+			State dState = dStates.get(current);
+			transferAccept(current, dState);
+
+			for (ByteRange range : byteRanges) {
+				byte from = range.from[0];
+				byte to = range.to[0];
+				BitSet next = next(current, from);
+				State target = dStates.get(next);
+				if (target == null) {
+					target = new State();
+					dStates.add(next, target);
+				}
+				if (from == to) {
+					dState.addTransition(new ByteTransition(dState, from, target));
+				} else {
+					dState.addTransition(new BytesTransition(dState, from, to, target));
+				}
+				todo.add(next);
+			}
+		}
+		init(dStart);
+	}
+
+	private void transferAccept(BitSet bits, State dState) {
+		int pos = bits.nextSetBit(0);
+		while (pos > -1) {
+			State state = states[pos];
+			if (state.isAccepting()) {
+				dState.accept();
+				return;
+			}
+			pos = bits.nextSetBit(pos + 1);
+		}
+	}
+
+	private BitSet next(BitSet bits, byte value) {
+		BitSet result = BitSet.empty(states.length);
+		int pos = bits.nextSetBit(0);
+		while (pos > -1) {
+			State state = states[pos];
+			for (OrdinaryTransition transition : state.nexts(value)) {
+				result.set(transition.getTarget().getId());
+			}
+			pos = bits.nextSetBit(pos + 1);
+		}
+		return result;
+	}
+
+	private static State[] enumerateStates(State start) {
+		List<State> states = new ArrayList<>();
+		WorkSet<State> todo = new WorkSet<>();
+		todo.add(start);
+		while (!todo.isEmpty()) {
+			State current = todo.remove();
+			current.setId(states.size());
+			states.add(current);
+			todo.addAll(current.reachableStates());
+		}
+		return states.toArray(new State[0]);
+	}
+
+	private static List<ByteRange> computeEquivalentByteRanges(State start) {
+		ByteRangeAccumulator acc = new ByteRangeAccumulator();
+
+		Queue<State> todo = new WorkSet<>();
+		todo.add(start);
+		while (!todo.isEmpty()) {
+			State state = todo.remove();
+			for (OrdinaryTransition transition : state.ordinaries()) {
+				acc.split(transition.getFrom(), transition.getTo());
+				todo.add(transition.getTarget());
+			}
+		}
+		return acc.getRanges();
+	}
+
+	private void mergeAdjacentTransitions() {
+		Queue<State> todo = new WorkSet<>();
+		todo.add(start);
+		while (!todo.isEmpty()) {
+			State state = todo.remove();
+			List<Transition> sortedTransitions = new ArrayList<>(state.transitions());
+			Collections.sort(sortedTransitions, new TransitionComparator());
+
+			List<Transition> mergedTransitions = new ArrayList<>(sortedTransitions.size());
+
+			Transition last = null;
+
+			for (Transition transition : sortedTransitions) {
+				if (last == null) {
+					last = transition;
+				} else {
+					Transition join = tryJoin(last, transition);
+					if (join != null) {
+						last = join;
+					} else {
+						mergedTransitions.add(last);
+						last = transition;
+					}
+				}
+			}
+			if (last != null) {
+				mergedTransitions.add(last);
+			}
+			if (mergedTransitions.size() < sortedTransitions.size()) {
+				state.updateTransitions(mergedTransitions);
+			}
+		}
+	}
+
+	private Transition tryJoin(Transition t1, Transition t2) {
+		if (t1.getTarget() != t2.getTarget() || t1.getOrigin() != t2.getOrigin()) {
+			return null;
+		}
+		State origin = t1.getOrigin();
+		State target = t1.getTarget();
+
+		if (t1 instanceof EpsilonTransition && t2 instanceof EpsilonTransition) {
+			return new EpsilonTransition(origin, target);
+		}
+		if (t1 instanceof OrdinaryTransition && t2 instanceof OrdinaryTransition) {
+			OrdinaryTransition ot1 = (OrdinaryTransition) t1;
+			OrdinaryTransition ot2 = (OrdinaryTransition) t2;
+
+			int from1 = ot1.getFrom() & 0xff;
+			int to1 = ot1.getTo() & 0xff;
+			int from2 = ot2.getFrom() & 0xff;
+			int to2 = ot2.getTo() & 0xff;
+
+			if (from2 >= from1 && from2 <= to1 + 1 || from1 >= from2 && from1 <= to2 + 1) {
+
+				byte from = (byte) Math.min(from1, from2);
+				byte to = (byte) Math.max(to1, to2);
+
+				if (from == to) {
+					return new ByteTransition(origin, from, target);
+				} else {
+					return new BytesTransition(origin, from, to, target);
+				}
+			}
+		}
+		return null;
+	}
+
+	private void eliminateDeadStates() {
+		Set<State> live = liveStates();
+
+		Queue<State> todo = new WorkSet<>();
+		todo.add(start);
+		while (!todo.isEmpty()) {
+			State current = todo.remove();
+			Iterator<Transition> transitionIterator = current.transitions().iterator();
+			while (transitionIterator.hasNext()) {
+				Transition transition = transitionIterator.next();
+				State target = transition.getTarget();
+				if (live.contains(target)) {
+					todo.add(target);
+				} else {
+					transitionIterator.remove();
+				}
+			}
+		}
+		init(start);
 	}
 
 	private void eliminateEpsilons() {
@@ -90,4 +450,55 @@ public class NFA {
 		return epsilons;
 	}
 
+	private Map<State, List<Transition>> reachingTransitions() {
+		Map<State, List<Transition>> reaching = new HashMap<>();
+
+		WorkSet<Transition> todo = new WorkSet<>();
+		todo.addAll(start.transitions());
+		while (!todo.isEmpty()) {
+			Transition transition = todo.remove();
+			State target = transition.getTarget();
+			List<Transition> reachingCurrent = reaching.get(target);
+			if (reachingCurrent == null) {
+				reachingCurrent = new ArrayList<>();
+				reaching.put(target, reachingCurrent);
+			}
+			reachingCurrent.add(transition);
+			todo.addAll(target.transitions());
+		}
+		return reaching;
+	}
+
+	private static class ByteRangeAccumulator {
+		
+		private List<ByteRange> ranges;
+
+		public ByteRangeAccumulator() {
+			ranges = ArrayLists.of(new ByteRange((byte) 0x00, (byte) 0xff, 256));
+		}
+
+		public List<ByteRange> getRanges() {
+			return ranges;
+		}
+
+		public void split(byte from, byte to) {
+			for (int i = 0; i < ranges.size(); i++) {
+				ByteRange currentRange = ranges.get(i);
+				if (currentRange.contains(from) && currentRange.contains(to)) {
+					i = replace(i, currentRange.splitAround(from, to));
+				} else if (currentRange.contains(from)) {
+					i = replace(i, currentRange.splitBefore(from));
+				} else if (currentRange.contains(to)) {
+					i = replace(i, currentRange.splitAfter(to));
+				}
+			}
+		}
+
+		public int replace(int i, List<ByteRange> replacement) {
+			ranges.remove(i);
+			ranges.addAll(i, replacement);
+			return i + replacement.size() - 1;
+		}
+
+	}
 }

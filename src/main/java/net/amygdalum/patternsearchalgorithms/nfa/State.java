@@ -1,6 +1,7 @@
 package net.amygdalum.patternsearchalgorithms.nfa;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -13,19 +14,26 @@ import net.amygdalum.util.worklist.WorkSet;
 
 public class State implements Cloneable {
 
+	private int id;
 	private boolean accept;
 	private List<Transition> transitions;
 
 	public State() {
+		id = System.identityHashCode(this);
 		transitions = new ArrayList<>();
 	}
 
 	public State(int transitionCount) {
+		id = System.identityHashCode(this);
 		transitions = new ArrayList<>(transitionCount);
 	}
 
+	public void setId(int id) {
+		this.id = id;
+	}
+
 	public int getId() {
-		return System.identityHashCode(this);
+		return id;
 	}
 
 	public void accept() {
@@ -46,6 +54,15 @@ public class State implements Cloneable {
 
 	public void removeTransition(Transition transition) {
 		transitions.remove(transition);
+	}
+
+	public void updateTransitions(Collection<Transition> transitions) {
+		this.transitions.clear();
+		this.transitions.addAll(transitions);
+	}
+
+	public List<Transition> transitions() {
+		return transitions;
 	}
 
 	public List<OrdinaryTransition> ordinaries() {

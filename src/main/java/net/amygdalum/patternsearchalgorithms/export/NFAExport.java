@@ -1,7 +1,5 @@
 package net.amygdalum.patternsearchalgorithms.export;
 
-import static net.amygdalum.util.text.ByteEncoding.decode;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -12,6 +10,7 @@ import net.amygdalum.patternsearchalgorithms.nfa.EpsilonTransition;
 import net.amygdalum.patternsearchalgorithms.nfa.NFA;
 import net.amygdalum.patternsearchalgorithms.nfa.OrdinaryTransition;
 import net.amygdalum.patternsearchalgorithms.nfa.State;
+import net.amygdalum.util.text.ByteEncoding;
 
 public class NFAExport {
 
@@ -77,6 +76,15 @@ public class NFAExport {
 	private void writeTransition(Writer writer, EpsilonTransition transition) throws IOException {
 		String format = " [label=\"&epsilon;\"]";
 		writer.write(transition.getOrigin().getId() + " -> " + transition.getTarget().getId() + format + ";\n");
+	}
+	
+	private String decode(Charset charset, byte value) {
+		String decoded = "#" + String.format("%02X ", value);
+		char[] chars = ByteEncoding.decode(charset, value).toCharArray();
+		if (chars.length == 1 && Character.isDefined(chars[0]) && !Character.isISOControl(chars[0])) {
+			decoded = String.valueOf(chars[0]);
+		}
+		return decoded;
 	}
 
 }

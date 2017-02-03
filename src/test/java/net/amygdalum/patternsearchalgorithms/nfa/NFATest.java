@@ -1,5 +1,8 @@
 package net.amygdalum.patternsearchalgorithms.nfa;
 
+import static java.lang.Character.MAX_VALUE;
+import static java.lang.Character.MIN_VALUE;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
@@ -20,7 +23,7 @@ public class NFATest {
 
 	@Before
 	public void before() throws Exception {
-		this.nfaBuilder = new NFABuilder(null, StandardCharsets.UTF_8);
+		this.nfaBuilder = new NFABuilder(StandardCharsets.UTF_8);
 	}
 
 	@Test
@@ -82,6 +85,23 @@ public class NFATest {
 		assertThat(matchSamples(abc, "a\n"), empty());
 		assertThat(matchSamples(abc, "a&b"), empty());
 		assertThat(matchSamples(abc, ""), empty());
+	}
+
+	@Test
+	public void testMatchAnyCharUnicodeReturns() throws Exception {
+		NFA abc = automatonOf(nfaBuilder.match(Character.MIN_VALUE, Character.MAX_VALUE));
+		assertThat(matchSamples(abc, "\u0085"), contains("\u0085"));
+		assertThat(matchSamples(abc, "\u2028"), contains("\u2028"));
+		assertThat(matchSamples(abc, "\u2029"), contains("\u2029"));
+	}
+
+	@Test
+	public void testMatchCharRangeDifferentByteSize() throws Exception {
+		NFA abc = automatonOf(nfaBuilder.match('\u0086', '\u2027'));
+		assertThat(matchSamples(abc, "\u0086"), contains("\u0086"));
+		assertThat(matchSamples(abc, "\u2027"), contains("\u2027"));
+		assertThat(matchSamples(abc, "\u0085"), empty());
+		assertThat(matchSamples(abc, "\u2028"), empty());
 	}
 
 	@Test
@@ -234,8 +254,31 @@ public class NFATest {
 		assertThat(matchSamples(aOrb, "üaö"), empty());
 	}
 
-	private static NFA automatonOf(NFABuilder.PartialNFA automaton) {
-		return automaton.toFullNFA();
+	@Test
+	public void testMatchLoop1OverCompClasses() throws Exception {
+		NFA aOrb = automatonOf(nfaBuilder.matchUnlimitedLoop(nfaBuilder.matchAlternatives(asList(nfaBuilder.match(MIN_VALUE, 'b'), nfaBuilder.match('d', MAX_VALUE))),1));
+		
+		assertThat(matchSamples(aOrb, "a"), contains("a"));
+		assertThat(matchSamples(aOrb, "d"), contains("d"));
+		assertThat(matchSamples(aOrb, "dd"), contains("dd"));
+		assertThat(matchSamples(aOrb, "aa"), contains("aa"));
+		assertThat(matchSamples(aOrb, ""), empty());
+	}
+
+	@Test
+	public void testMatchLoop0OverCompClasses() throws Exception {
+		NFA aOrb = automatonOf(nfaBuilder.matchStarLoop(nfaBuilder.matchAlternatives(asList(nfaBuilder.match(MIN_VALUE, 'b'), nfaBuilder.match('d', MAX_VALUE)))));
+		assertThat(matchSamples(aOrb, "a"), contains("a"));
+		assertThat(matchSamples(aOrb, "d"), contains("d"));
+		assertThat(matchSamples(aOrb, "dd"), contains("dd"));
+		assertThat(matchSamples(aOrb, "aa"), contains("aa"));
+		assertThat(matchSamples(aOrb, "ddd"), contains("ddd"));
+		assertThat(matchSamples(aOrb, "aaa"), contains("aaa"));
+		assertThat(matchSamples(aOrb, ""), contains(""));
+	}
+
+	private static NFA automatonOf(NFAComponent automaton) {
+		return automaton.toFullNFA(UTF_8);
 	}
 
 	public static Set<String> matchSamples(NFA a, String... samples) {

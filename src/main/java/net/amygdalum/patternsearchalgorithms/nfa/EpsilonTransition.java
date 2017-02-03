@@ -8,7 +8,7 @@ public class EpsilonTransition extends AbstractTransition {
 
 	@Override
 	public Transition asPrototype() {
-		return new EpsilonTransition(null, null);
+		return new EpsilonTransition(null, null).withAction(getAction());
 	}
 	
 	@Override

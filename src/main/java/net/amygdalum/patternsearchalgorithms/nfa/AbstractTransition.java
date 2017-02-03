@@ -40,11 +40,16 @@ public abstract class AbstractTransition implements Transition {
 	}
 	
 	@Override
-	public Groups executeAction(Groups groups) {
+	public Action getAction() {
+		return action;
+	}
+	
+	@Override
+	public Groups executeAction(Groups groups, long pos) {
 		if (action == null) {
 			return groups;
 		} else {
-			return action.applyTo(groups);
+			return action.applyTo(groups, pos);
 		}
 	}
 }

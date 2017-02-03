@@ -11,7 +11,8 @@ public abstract class OrdinaryTransition extends AbstractTransition {
 	public abstract byte getTo();
 
 	public boolean accepts(byte b) {
-		return b >= getFrom() && b <= getTo();
+		int i = b & 0xff;
+		return i >= (getFrom() & 0xff) && i <= (getTo() & 0xff);
 	}
 
 }

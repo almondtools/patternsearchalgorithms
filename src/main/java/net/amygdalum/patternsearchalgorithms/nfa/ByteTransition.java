@@ -21,7 +21,7 @@ public class ByteTransition extends OrdinaryTransition {
 
 	@Override
 	public Transition asPrototype() {
-		return new ByteTransition(null, event, null);
+		return new ByteTransition(null, event, null).withAction(getAction());
 	}
 
 	@Override

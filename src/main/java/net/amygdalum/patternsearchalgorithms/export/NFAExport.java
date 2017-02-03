@@ -68,16 +68,18 @@ public class NFAExport {
 	private void writeTransition(Writer writer, OrdinaryTransition transition) throws IOException {
 		byte from = transition.getFrom();
 		byte to = transition.getTo();
+		String action = transition.getAction() == null ? "" : "/" + transition.getAction().toString();
 		Charset charset = automaton.getCharset();
-		String format = (from == to) ? " [label=\"" + decode(charset, from) + "\"]" : " [label=\"" + decode(charset, from) + "-" + decode(charset, to) + "\"]";
+		String format = (from == to) ? " [label=\"" + decode(charset, from) + action + "\"]" : " [label=\"" + decode(charset, from) + "-" + decode(charset, to) + action + "\"]";
 		writer.write(transition.getOrigin().getId() + " -> " + transition.getTarget().getId() + format + ";\n");
 	}
 
 	private void writeTransition(Writer writer, EpsilonTransition transition) throws IOException {
-		String format = " [label=\"&epsilon;\"]";
+		String action = transition.getAction() == null ? "" : "/" + transition.getAction().toString();
+		String format = " [label=\"&epsilon;" + action + "\"]";
 		writer.write(transition.getOrigin().getId() + " -> " + transition.getTarget().getId() + format + ";\n");
 	}
-	
+
 	private String decode(Charset charset, byte value) {
 		String decoded = "#" + String.format("%02X ", value);
 		char[] chars = ByteEncoding.decode(charset, value).toCharArray();

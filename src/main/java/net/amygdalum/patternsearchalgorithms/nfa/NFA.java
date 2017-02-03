@@ -4,6 +4,7 @@ import static java.util.Arrays.asList;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -22,7 +23,7 @@ import net.amygdalum.util.map.BitSetObjectMap;
 import net.amygdalum.util.text.ByteRange;
 import net.amygdalum.util.worklist.WorkSet;
 
-public class NFA {
+public class NFA implements Cloneable {
 
 	private State start;
 	private List<ByteRange> byteRanges;
@@ -48,14 +49,8 @@ public class NFA {
 		return charset;
 	}
 
-	public Set<State> states() {
-		WorkSet<State> todo = new WorkSet<>();
-		todo.add(start);
-		while (!todo.isEmpty()) {
-			State current = todo.remove();
-			todo.addAll(current.reachableStates());
-		}
-		return todo.getDone();
+	public State[] states() {
+		return states;
 	}
 
 	public Set<State> acceptStates() {
@@ -96,18 +91,23 @@ public class NFA {
 	}
 
 	public void prune() {
-		eliminateEpsilons();
+		eliminateEpsilons(true);
 		mergeAdjacentTransitions();
 		eliminateDeadStates();
 	}
 
 	public void determinize() {
-		eliminateEpsilons();
+		eliminateEpsilons(false);
 		mergeAdjacentTransitions();
 		eliminateDeadStates();
 		determinizeStates();
 		eliminateDeadStates();
 		minimizeStates();
+	}
+
+	public Object tabled() {
+		determinize();
+		return null;
 	}
 
 	private void minimizeStates() {
@@ -412,7 +412,7 @@ public class NFA {
 		init(start);
 	}
 
-	private void eliminateEpsilons() {
+	private void eliminateEpsilons(boolean preserveActions) {
 		Queue<State> todo = new WorkSet<>();
 		todo.add(start);
 		while (!todo.isEmpty()) {
@@ -420,34 +420,53 @@ public class NFA {
 			for (State target : state.reachableStates()) {
 				todo.add(target);
 			}
-			for (EpsilonTransition epsilon : transitiveEpsilons(state)) {
+			List<EpsilonTransition> epsilons = state.epsilons();
+			for (EpsilonTransition epsilon : transitiveEpsilons(epsilons, preserveActions)) {
+				State origin = epsilon.getOrigin();
+				if (origin == state) {
+					state.removeTransition(epsilon);
+				}
 				State target = epsilon.getTarget();
-				state.removeTransition(epsilon);
 				if (target.isAccepting()) {
 					state.accept();
 				}
-				for (Transition t : target.ordinaries()) {
+				for (OrdinaryTransition t : target.ordinaries()) {
 					Transition inlined = t.asPrototype()
 						.withOrigin(state)
 						.withTarget(t.getTarget());
 					state.addTransition(inlined);
 				}
+				if (preserveActions) {
+					for (EpsilonTransition t : target.epsilons()) {
+						Action action = t.getAction();
+						if (action != null) {
+							Transition inlined = t.asPrototype()
+								.withOrigin(state)
+								.withTarget(t.getTarget())
+								.withAction(action);
+							state.addTransition(inlined);
+						}
+					}
+				}
 			}
 		}
 	}
 
-	private Set<EpsilonTransition> transitiveEpsilons(State state) {
-		Set<EpsilonTransition> epsilons = new LinkedHashSet<>();
-		Queue<State> todo = new WorkSet<>();
-		todo.add(state);
+	private Set<EpsilonTransition> transitiveEpsilons(Collection<EpsilonTransition> epsilons, boolean preserveActions) {
+		WorkSet<EpsilonTransition> todo = new WorkSet<>();
+		todo.addAll(epsilons);
 		while (!todo.isEmpty()) {
-			State current = todo.remove();
-			for (EpsilonTransition epsilon : current.epsilons()) {
-				epsilons.add(epsilon);
-				todo.add(epsilon.getTarget());
+			EpsilonTransition current = todo.remove();
+			if (preserveActions && current.getAction() != null) {
+				todo.remove(current);
+				continue;
+			}
+			State target = current.getTarget();
+			for (EpsilonTransition epsilon : target.epsilons()) {
+				todo.add(epsilon);
 			}
 		}
-		return epsilons;
+		return todo.getDone();
 	}
 
 	private Map<State, List<Transition>> reachingTransitions() {
@@ -469,8 +488,29 @@ public class NFA {
 		return reaching;
 	}
 
+	public NFAComponent asComponent() {
+		State end = new State();
+		for (State accept : acceptStates()) {
+			accept.accept(false);
+			accept.addTransition(new EpsilonTransition(accept, end));
+		}
+		return new NFAComponent(start, end);
+	}
+
+	@Override
+	public NFA clone() {
+		try {
+			NFA nfa = (NFA) super.clone();
+			StateClone stateClone = StateClone.cloneTree(start);
+			nfa.init(stateClone.getStart());
+			return nfa;
+		} catch (CloneNotSupportedException e) {
+			return null;
+		}
+	}
+
 	private static class ByteRangeAccumulator {
-		
+
 		private List<ByteRange> ranges;
 
 		public ByteRangeAccumulator() {
@@ -501,4 +541,5 @@ public class NFA {
 		}
 
 	}
+
 }

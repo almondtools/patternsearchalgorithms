@@ -6,6 +6,8 @@ public interface Transition {
 	
 	State getOrigin();
 
+	Action getAction();
+
 	Transition asPrototype();
 	
 	Transition withOrigin(State state);
@@ -14,6 +16,6 @@ public interface Transition {
 
 	Transition withAction(Action action);
 
-	Groups executeAction(Groups groups);
+	Groups executeAction(Groups groups, long pos);
 
 }

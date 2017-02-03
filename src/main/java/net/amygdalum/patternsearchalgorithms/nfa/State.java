@@ -2,15 +2,9 @@ package net.amygdalum.patternsearchalgorithms.nfa;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
-
-import net.amygdalum.util.tuples.Pair;
-import net.amygdalum.util.worklist.WorkSet;
 
 public class State implements Cloneable {
 
@@ -35,9 +29,13 @@ public class State implements Cloneable {
 	public int getId() {
 		return id;
 	}
-
+	
 	public void accept() {
 		this.accept = true;
+	}
+
+	public void accept(boolean accept) {
+		this.accept = accept;
 	}
 
 	public boolean isAccepting() {
@@ -99,30 +97,6 @@ public class State implements Cloneable {
 		Set<State> states = new LinkedHashSet<>();
 		for (Transition transition : transitions) {
 			states.add(transition.getTarget());
-		}
-		return states;
-	}
-
-	public Map<State, State> cloneTree() {
-		Map<State, State> states = new IdentityHashMap<State, State>();
-		Queue<Pair<State, State>> workset = new WorkSet<>();
-		workset.add(new Pair<>(this, this.asPrototype()));
-		while (!workset.isEmpty()) {
-			Pair<State, State> current = workset.remove();
-			State state = current.left;
-			State cloned = current.right;
-			states.put(state, cloned);
-
-			for (Transition transition : state.transitions) {
-				State target = transition.getTarget();
-				State clonedtarget = states.get(target);
-				if (clonedtarget == null) {
-					clonedtarget = target.asPrototype();
-					workset.add(new Pair<>(target, clonedtarget));
-				}
-				Transition clonedtransition = transition.asPrototype().withOrigin(cloned).withTarget(clonedtarget);
-				cloned.addTransition(clonedtransition);
-			}
 		}
 		return states;
 	}

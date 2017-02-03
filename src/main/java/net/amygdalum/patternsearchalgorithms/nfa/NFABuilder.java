@@ -10,9 +10,7 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Map;
 
-import net.amygdalum.patternsearchalgorithms.nfa.NFABuilder.PartialNFA;
 import net.amygdalum.regexparser.AlternativesNode;
 import net.amygdalum.regexparser.AnyCharNode;
 import net.amygdalum.regexparser.BoundedLoopNode;
@@ -31,34 +29,39 @@ import net.amygdalum.regexparser.StringNode;
 import net.amygdalum.regexparser.UnboundedLoopNode;
 import net.amygdalum.util.text.ByteRange;
 
-public class NFABuilder implements RegexNodeVisitor<PartialNFA> {
+public class NFABuilder implements RegexNodeVisitor<NFAComponent> {
 
 	private static final byte MAXBYTE = (byte) 255;
 	private static final byte MINBYTE = (byte) 0;
 
-	private RegexNode node;
 	private Charset charset;
+	private int groupIndex;
 
-	public NFABuilder(RegexNode node, Charset charset) {
-		this.node = node;
+	public NFABuilder(Charset charset) {
 		this.charset = charset;
+		this.groupIndex = 0;
 	}
 
-	public PartialNFA match(char value) {
+	private int nextGroupIndex() {
+		groupIndex++;
+		return groupIndex;
+	}
+
+	public NFAComponent match(char value) {
 		State s = new State();
 		State e = new State();
 		connect(s, e, value);
-		return new PartialNFA(s, e);
+		return new NFAComponent(s, e);
 	}
 
-	public PartialNFA match(String value) {
+	public NFAComponent match(String value) {
 		State s = new State();
 		State e = new State();
 		connect(s, e, value);
-		return new PartialNFA(s, e);
+		return new NFAComponent(s, e);
 	}
 
-	public PartialNFA match(char from, char to) {
+	public NFAComponent match(char from, char to) {
 		State s = new State();
 		State e = new State();
 		if (from > to) {
@@ -67,7 +70,7 @@ public class NFABuilder implements RegexNodeVisitor<PartialNFA> {
 			to = temp;
 		}
 		connect(s, e, from, to);
-		return new PartialNFA(s, e);
+		return new NFAComponent(s, e);
 	}
 
 	private void connect(State s, State e, String value) {
@@ -116,58 +119,120 @@ public class NFABuilder implements RegexNodeVisitor<PartialNFA> {
 		} else if (length == 1) {
 			s.addTransition(new BytesTransition(s, bytes.from[0], bytes.to[0], e));
 		} else {
-			State[][] chain = new State[length - 1][3];
-			for (int j = 0; j < 3; j++) {
-				for (int i = 0; i < chain.length; i++) {
-					chain[i][j] = new State();
-				}
+			State[] states = new State[] { s };
+			for (int i = 0; i < length - 1; i++) {
+				states = connectState(states, bytes.from[i], bytes.to[i]);
 			}
-			int last = chain.length - 1;
-
-			s.addTransition(new ByteTransition(s, bytes.from[0], chain[0][0]));
-			s.addTransition(new BytesTransition(s, after(bytes.from[0]), before(bytes.to[0]), chain[0][1]));
-			s.addTransition(new ByteTransition(s, bytes.to[0], chain[0][2]));
-
-			for (int i = 1; i < length - 1; i++) {
-				chain[i - 1][0].addTransition(new ByteTransition(chain[i - 1][0], bytes.from[i], chain[i][0]));
-				if (after(bytes.from[i]) != MAXBYTE) {
-					chain[i - 1][0].addTransition(new BytesTransition(chain[i - 1][0], after(bytes.from[i]), MAXBYTE, chain[i][1]));
-				}
-
-				chain[i - 1][1].addTransition(new BytesTransition(chain[i - 1][1], MINBYTE, MAXBYTE, chain[i][1]));
-
-				if (MINBYTE != before(bytes.from[i])) {
-					chain[i - 1][2].addTransition(new BytesTransition(chain[i - 1][2], MINBYTE, before(bytes.to[i]), chain[i][1]));
-				}
-				chain[i - 1][2].addTransition(new ByteTransition(chain[i - 1][2], bytes.to[i], chain[i][2]));
-			}
-
-			chain[last][0].addTransition(new BytesTransition(chain[last][0], bytes.from[length - 1], MAXBYTE, e));
-			chain[last][1].addTransition(new BytesTransition(chain[last][1], MINBYTE, MAXBYTE, e));
-			chain[last][2].addTransition(new BytesTransition(chain[last][2], MINBYTE, bytes.to[length - 1], e));
-
+			connectState(states, bytes.from[length - 1], bytes.to[length - 1], e);
 		}
 	}
 
-	public PartialNFA matchGroup(PartialNFA a) {
-		return a;
+	private State[] connectState(State[] states, byte from, byte to) {
+		if (states.length == 1) {
+			if (from == to) {
+				State[] next = new State[] { new State() };
+				states[0].addTransition(new ByteTransition(states[0], from, next[0]));
+				return next;
+			} else if (to - from == 1) {
+				State[] next = new State[] { new State(), new State() };
+				states[0].addTransition(new ByteTransition(states[0], from, next[0]));
+				states[0].addTransition(new ByteTransition(states[0], to, next[1]));
+				return next;
+			} else {
+				State[] next = new State[] { new State(), new State(), new State() };
+				states[0].addTransition(new ByteTransition(states[0], from, next[0]));
+				states[0].addTransition(new BytesTransition(states[0], after(from), before(to), next[1]));
+				states[0].addTransition(new ByteTransition(states[0], to, next[2]));
+				return next;
+			}
+		} else if (states.length == 2) {
+			if (from == MAXBYTE && to == MINBYTE) {
+				State[] next = new State[] { new State(), new State() };
+				states[0].addTransition(new ByteTransition(states[0], from, next[0]));
+				states[1].addTransition(new ByteTransition(states[1], to, next[1]));
+				return next;
+			} else {
+				State[] next = new State[] { new State(), new State(), new State() };
+				states[0].addTransition(new ByteTransition(states[0], from, next[0]));
+				if (from != MAXBYTE) {
+					states[0].addTransition(new BytesTransition(states[0], after(from), MAXBYTE, next[1]));
+				}
+				if (to != MINBYTE) {
+					states[1].addTransition(new BytesTransition(states[1], MINBYTE, before(to), next[1]));
+				}
+				states[1].addTransition(new ByteTransition(states[1], to, next[2]));
+				return next;
+			}
+		} else if (states.length == 3) {
+			State[] next = new State[] { new State(), new State(), new State() };
+			states[0].addTransition(new ByteTransition(states[0], from, next[0]));
+			if (from != MAXBYTE) {
+				states[0].addTransition(new BytesTransition(states[0], after(from), MAXBYTE, next[1]));
+			}
+			states[1].addTransition(new BytesTransition(states[1], MINBYTE, MAXBYTE, next[1]));
+			if (to != MINBYTE) {
+				states[2].addTransition(new BytesTransition(states[2], MINBYTE, before(to), next[1]));
+			}
+			states[2].addTransition(new ByteTransition(states[2], to, next[2]));
+			return next;
+		} else {
+			return new State[0];
+		}
 	}
 
-	public PartialNFA matchAlternatives(List<PartialNFA> as) {
+	private void connectState(State[] states, byte from, byte to, State terminator) {
+		if (states.length == 1 && from == to) {
+			states[0].addTransition(new ByteTransition(states[0], from, terminator));
+		} else if (states.length == 2) {
+			if (from == MAXBYTE && to == MINBYTE) {
+				states[0].addTransition(new ByteTransition(states[0], from, terminator));
+				states[1].addTransition(new ByteTransition(states[1], to, terminator));
+			} else {
+				states[0].addTransition(new ByteTransition(states[0], from, terminator));
+				if (from != MAXBYTE) {
+					states[0].addTransition(new BytesTransition(states[0], after(from), MAXBYTE, terminator));
+				}
+				if (to != MINBYTE) {
+					states[1].addTransition(new BytesTransition(states[1], MINBYTE, before(to), terminator));
+				}
+				states[1].addTransition(new ByteTransition(states[1], to, terminator));
+			}
+		} else if (states.length == 3) {
+			states[0].addTransition(new ByteTransition(states[0], from, terminator));
+			if (from != MAXBYTE) {
+				states[0].addTransition(new BytesTransition(states[0], after(from), MAXBYTE, terminator));
+			}
+			states[1].addTransition(new BytesTransition(states[1], MINBYTE, MAXBYTE, terminator));
+			if (to != MINBYTE) {
+				states[2].addTransition(new BytesTransition(states[2], MINBYTE, before(to), terminator));
+			}
+			states[2].addTransition(new ByteTransition(states[2], to, terminator));
+		}
+	}
+
+	public NFAComponent matchGroup(NFAComponent a, int no) {
+		State s = new State();
+		State e = new State();
+		s.addTransition(new EpsilonTransition(s, a.start).withAction(new StartGroup(no)));
+		a.end.addTransition(new EpsilonTransition(a.end, e).withAction(new EndGroup(no)));
+		return new NFAComponent(s, e);
+	}
+
+	public NFAComponent matchAlternatives(List<NFAComponent> as) {
 		if (as.size() == 1) {
 			return as.get(0);
 		}
 		State s = new State();
 		State e = new State();
-		for (PartialNFA a : as) {
+		for (NFAComponent a : as) {
 			State n = a.start;
 			s.addTransition(new EpsilonTransition(s, n));
 			a.end.addTransition(new EpsilonTransition(a.end, e));
 		}
-		return new PartialNFA(s, e);
+		return new NFAComponent(s, e);
 	}
 
-	public PartialNFA matchConcatenation(List<PartialNFA> as) {
+	public NFAComponent matchConcatenation(List<NFAComponent> as) {
 		if (as.size() == 1) {
 			return as.get(0);
 		}
@@ -176,89 +241,89 @@ public class NFABuilder implements RegexNodeVisitor<PartialNFA> {
 		State e = as.get(as.size() - 1).end;
 
 		State last = null;
-		ListIterator<PartialNFA> aIterator = as.listIterator();
+		ListIterator<NFAComponent> aIterator = as.listIterator();
 		while (aIterator.hasNext()) {
-			PartialNFA a = aIterator.next();
+			NFAComponent a = aIterator.next();
 			if (last != null) {
 				last.addTransition(new EpsilonTransition(last, a.start));
 			}
 			last = a.end;
 		}
-		return new PartialNFA(s, e);
+		return new NFAComponent(s, e);
 	}
 
-	public PartialNFA matchEmpty() {
+	public NFAComponent matchEmpty() {
 		State s = new State();
-		return new PartialNFA(s, s);
+		return new NFAComponent(s, s);
 	}
 
-	public PartialNFA matchNothing() {
+	public NFAComponent matchNothing() {
 		State s = new State();
-		return new PartialNFA(s, null);
+		return new NFAComponent(s, null);
 	}
 
-	public PartialNFA matchOptional(PartialNFA a) {
+	public NFAComponent matchOptional(NFAComponent a) {
 		State s = new State();
 		State e = new State();
 		s.addTransition(new EpsilonTransition(s, e));
 		s.addTransition(new EpsilonTransition(s, a.start));
 		a.end.addTransition(new EpsilonTransition(a.end, e));
-		return new PartialNFA(s, e);
+		return new NFAComponent(s, e);
 	}
 
-	public PartialNFA matchUnlimitedLoop(PartialNFA a, int start) {
+	public NFAComponent matchUnlimitedLoop(NFAComponent a, int start) {
 		if (start == 0) {
 			return matchStarLoop(a);
 		} else {
-			List<PartialNFA> as = copyOf(a, start);
+			List<NFAComponent> as = copyOf(a, start);
 			as.add(matchStarLoop(a.clone()));
 			return matchConcatenation(as);
 		}
 	}
 
-	public PartialNFA matchStarLoop(PartialNFA a) {
+	public NFAComponent matchStarLoop(NFAComponent a) {
 		State s = new State();
 		State e = new State();
 		s.addTransition(new EpsilonTransition(s, a.start));
 		s.addTransition(new EpsilonTransition(s, e));
 		a.end.addTransition(new EpsilonTransition(a.end, a.start));
 		a.end.addTransition(new EpsilonTransition(a.end, e));
-		return new PartialNFA(s, e);
+		return new NFAComponent(s, e);
 	}
 
-	public PartialNFA matchRangeLoop(PartialNFA a, int start, int end) {
+	public NFAComponent matchRangeLoop(NFAComponent a, int start, int end) {
 		if (start == end) {
 			return matchFixedLoop(a, start);
 		} else {
-			PartialNFA aFixed = matchFixedLoop(a, start);
-			PartialNFA aUpToN = matchUpToN(a.clone(), end - start);
-			PartialNFA matchConcatenation = matchConcatenation(asList(aFixed, aUpToN));
+			NFAComponent aFixed = matchFixedLoop(a, start);
+			NFAComponent aUpToN = matchUpToN(a.clone(), end - start);
+			NFAComponent matchConcatenation = matchConcatenation(asList(aFixed, aUpToN));
 			return matchConcatenation;
 		}
 	}
 
-	public PartialNFA matchFixedLoop(PartialNFA a, int count) {
-		List<PartialNFA> as = copyOf(a, count);
+	public NFAComponent matchFixedLoop(NFAComponent a, int count) {
+		List<NFAComponent> as = copyOf(a, count);
 		return matchConcatenation(as);
 	}
 
-	public PartialNFA matchUpToN(PartialNFA a, int count) {
+	public NFAComponent matchUpToN(NFAComponent a, int count) {
 		State s = new State();
 		State e = new State();
 		s.addTransition(new EpsilonTransition(s, e));
 
 		State current = s;
 		for (int i = 0; i < count; i++) {
-			PartialNFA ai = a.clone();
+			NFAComponent ai = a.clone();
 			current.addTransition(new EpsilonTransition(current, ai.start));
 			ai.end.addTransition(new EpsilonTransition(ai.end, e));
 			current = ai.end;
 		}
-		return new PartialNFA(s, e);
+		return new NFAComponent(s, e);
 	}
 
-	private static List<PartialNFA> copyOf(PartialNFA a, int count) {
-		List<PartialNFA> copies = new ArrayList<>(count);
+	private static List<NFAComponent> copyOf(NFAComponent a, int count) {
+		List<NFAComponent> copies = new ArrayList<>(count);
 		copies.add(a);
 		for (int i = 1; i < count; i++) {
 			copies.add(a.clone());
@@ -267,128 +332,99 @@ public class NFABuilder implements RegexNodeVisitor<PartialNFA> {
 	}
 
 	@Override
-	public PartialNFA visitAlternatives(AlternativesNode node) {
-		List<PartialNFA> as = accept(node.getSubNodes());
+	public NFAComponent visitAlternatives(AlternativesNode node) {
+		List<NFAComponent> as = accept(node.getSubNodes());
 		return matchAlternatives(as);
 	}
 
 	@Override
-	public PartialNFA visitAnyChar(AnyCharNode node) {
-		List<PartialNFA> as = accept(node.toCharNodes());
+	public NFAComponent visitAnyChar(AnyCharNode node) {
+		List<NFAComponent> as = accept(node.toCharNodes());
 		return matchAlternatives(as);
 	}
 
 	@Override
-	public PartialNFA visitCharClass(CharClassNode node) {
-		List<PartialNFA> as = accept(node.toCharNodes());
+	public NFAComponent visitCharClass(CharClassNode node) {
+		List<NFAComponent> as = accept(node.toCharNodes());
 		return matchAlternatives(as);
 	}
 
 	@Override
-	public PartialNFA visitCompClass(CompClassNode node) {
-		List<PartialNFA> as = accept(node.toCharNodes());
+	public NFAComponent visitCompClass(CompClassNode node) {
+		List<NFAComponent> as = accept(node.toCharNodes());
 		return matchAlternatives(as);
 	}
 
 	@Override
-	public PartialNFA visitConcat(ConcatNode node) {
-		List<PartialNFA> as = accept(node.getSubNodes());
+	public NFAComponent visitConcat(ConcatNode node) {
+		List<NFAComponent> as = accept(node.getSubNodes());
 		return matchConcatenation(as);
 	}
 
 	@Override
-	public PartialNFA visitEmpty(EmptyNode node) {
+	public NFAComponent visitEmpty(EmptyNode node) {
 		return matchEmpty();
 	}
 
 	@Override
-	public PartialNFA visitGroup(GroupNode node) {
-		return matchGroup(node.getSubNode().accept(this));
+	public NFAComponent visitGroup(GroupNode node) {
+		int no = nextGroupIndex();
+		NFAComponent a = node.getSubNode().accept(this);
+		return matchGroup(a, no);
 	}
 
 	@Override
-	public PartialNFA visitBoundedLoop(BoundedLoopNode node) {
-		PartialNFA a = node.getSubNode().accept(this);
+	public NFAComponent visitBoundedLoop(BoundedLoopNode node) {
+		NFAComponent a = node.getSubNode().accept(this);
 		int from = node.getFrom();
 		int to = node.getTo();
 		return matchRangeLoop(a, from, to);
 	}
 
 	@Override
-	public PartialNFA visitUnboundedLoop(UnboundedLoopNode node) {
-		PartialNFA a = node.getSubNode().accept(this);
+	public NFAComponent visitUnboundedLoop(UnboundedLoopNode node) {
+		NFAComponent a = node.getSubNode().accept(this);
 		int from = node.getFrom();
 		return matchUnlimitedLoop(a, from);
 	}
 
 	@Override
-	public PartialNFA visitOptional(OptionalNode node) {
-		PartialNFA a = node.getSubNode().accept(this);
+	public NFAComponent visitOptional(OptionalNode node) {
+		NFAComponent a = node.getSubNode().accept(this);
 		return matchOptional(a);
 	}
 
 	@Override
-	public PartialNFA visitRangeChar(RangeCharNode node) {
+	public NFAComponent visitRangeChar(RangeCharNode node) {
 		return match(node.getFrom(), node.getTo());
 	}
 
 	@Override
-	public PartialNFA visitSingleChar(SingleCharNode node) {
+	public NFAComponent visitSingleChar(SingleCharNode node) {
 		return match(node.getValue());
 	}
 
 	@Override
-	public PartialNFA visitSpecialCharClass(SpecialCharClassNode node) {
-		List<PartialNFA> as = accept(node.toCharNodes());
+	public NFAComponent visitSpecialCharClass(SpecialCharClassNode node) {
+		List<NFAComponent> as = accept(node.toCharNodes());
 		return matchAlternatives(as);
 	}
 
 	@Override
-	public PartialNFA visitString(StringNode node) {
+	public NFAComponent visitString(StringNode node) {
 		return match(node.getValue());
 	}
 
-	private List<PartialNFA> accept(List<? extends RegexNode> nodes) {
-		List<PartialNFA> as = new ArrayList<PartialNFA>(nodes.size());
+	private List<NFAComponent> accept(List<? extends RegexNode> nodes) {
+		List<NFAComponent> as = new ArrayList<NFAComponent>(nodes.size());
 		for (RegexNode node : nodes) {
 			as.add(node.accept(this));
 		}
 		return as;
 	}
 
-	public NFA build() {
-		PartialNFA nfa = node.accept(this);
-		return nfa.toFullNFA();
-	}
-
-	public class PartialNFA implements Cloneable {
-
-		public State start;
-		public State end;
-
-		public PartialNFA(State start, State end) {
-			this.start = start;
-			this.end = end;
-		}
-
-		public NFA toFullNFA() {
-			if (end != null) {
-				end.accept();
-			}
-			return new NFA(start, charset);
-		}
-
-		@Override
-		protected PartialNFA clone() {
-			try {
-				PartialNFA clone = (PartialNFA) super.clone();
-				Map<State, State> clonedTree = start.cloneTree();
-				clone.start = clonedTree.get(start);
-				clone.end = clonedTree.get(end);
-				return clone;
-			} catch (CloneNotSupportedException e) {
-				return null;
-			}
-		}
+	public NFA build(RegexNode node) {
+		NFAComponent nfa = node.accept(this);
+		return nfa.toFullNFA(charset);
 	}
 }

@@ -5,7 +5,7 @@ import net.amygdalum.util.io.ByteProvider;
 
 public class GroupMatcherFactory implements MatcherFactory {
 
-	public static MatcherFactory compile(NFA nfa, SearchOption... options) {
+	public static MatcherFactory compile(NFA nfa, SearchMode option) {
 		// TODO Auto-generated method stub
 		return null;
 	}

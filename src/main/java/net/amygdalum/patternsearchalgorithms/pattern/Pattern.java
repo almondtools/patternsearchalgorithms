@@ -33,24 +33,22 @@ public class Pattern {
 		NFA nfa = buildNFAFrom(pattern, charset, regexOptions);
 
 		OptimizationTarget optimizations = OptimizationTarget.bestOf(options);
-		SearchOption[] search = SearchOption.allOf(options);
+		SearchMode mode = SearchMode.firstOf(options);
 
-		MatcherFactory factory = buildFactory(nfa, charset, optimizations, search);
+		MatcherFactory factory = buildFactory(nfa, charset, optimizations, mode);
 
 		return new Pattern(pattern, factory, charset.getCharset());
 	}
 
-	private static MatcherFactory buildFactory(NFA nfa, CharsetOption charset, OptimizationTarget optimizationTarget, SearchOption[] search) {
+	private static MatcherFactory buildFactory(NFA nfa, CharsetOption charset, OptimizationTarget optimizationTarget, SearchMode mode) {
 		switch (optimizationTarget) {
 		case GROUPS:
-			return GroupMatcherFactory.compile(nfa, search);
+			return GroupMatcherFactory.compile(nfa, mode);
 		case SEARCH:
-			return SearchMatcherFactory.compile(nfa, search);
-		case PREFIX:
-			return PrefixMatcherFactory.compile(nfa);
+			return SearchMatcherFactory.compile(nfa, mode);
 		case MATCH:
 		default:
-			return SimpleMatcherFactory.compile(nfa);
+			return SimpleMatcherFactory.compile(nfa, mode);
 		}
 	}
 
@@ -58,7 +56,7 @@ public class Pattern {
 		RegexParserOption[] parserOptions = RegexOption.toRegexParserOptions(regexOptions);
 		RegexParser parser = new RegexParser(pattern, parserOptions);
 		RegexNode node = parser.parse();
-		return new NFABuilder(node, charset.getCharset()).build();
+		return new NFABuilder(charset.getCharset()).build(node);
 	}
 
 	public Matcher matcher(String input) {

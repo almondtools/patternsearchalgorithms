@@ -3,6 +3,7 @@ package net.amygdalum.patternsearchalgorithms.pattern;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.SortedSet;
+import java.util.TreeSet;
 
 import net.amygdalum.patternsearchalgorithms.dfa.DFA;
 import net.amygdalum.patternsearchalgorithms.nfa.Groups;
@@ -51,7 +52,7 @@ public class SimpleMatcher implements Matcher {
 		}
 		return false;
 	}
-	
+
 	@Override
 	public boolean prefixes() {
 		if (matcherState == -2) {
@@ -84,7 +85,23 @@ public class SimpleMatcher implements Matcher {
 	public boolean find() {
 		groups = nextgroups;
 		if (finderState == null) {
-			finderState = NFAMatcherState.of(finder.getStart(), new Groups(), input.current());
+			long current = input.current();
+			finderState = NFAMatcherState.of(finder.getStart(), new Groups(), current);
+			if (finderState.isAccepting(current)) {
+				if (mode.findAll()) {
+					groups = finderState.getGroups();
+					nextgroups = null;
+					return true;
+				} else {
+					groups = finderState.getGroups();
+					if (groups.isEmpty()) {
+						groups = null;
+					} else {
+						groups = longestLeftMost(groups);
+					}
+					nextgroups = null;
+				}
+			}
 		}
 		while (!input.finished()) {
 			byte b = input.next();
@@ -106,7 +123,7 @@ public class SimpleMatcher implements Matcher {
 					if (nextgroups.isEmpty()) {
 						nextgroups = null;
 					} else if (mode.findNonOverlapping()) {
-						nextgroups = TreeSets.of(nextgroups.first());
+						nextgroups = longestLeftMost(nextgroups);
 					}
 					return true;
 				} else {
@@ -114,7 +131,7 @@ public class SimpleMatcher implements Matcher {
 					if (groups.isEmpty()) {
 						groups = null;
 					} else {
-						groups = TreeSets.of(groups.first());
+						groups = longestLeftMost(groups);
 					}
 					nextgroups = null;
 				}
@@ -127,13 +144,29 @@ public class SimpleMatcher implements Matcher {
 			return false;
 		}
 	}
-	
+
+	private SortedSet<Groups> longestLeftMost(SortedSet<Groups> groups) {
+		SortedSet<Groups> longestLeftmost = new TreeSet<>();
+		Groups last = null;
+		for (Groups group : groups) {
+			if (last == null) {
+				last = group;
+				longestLeftmost.add(group);
+			} else if (group.subsumes(last) && last.subsumes(group)) {
+				longestLeftmost.add(group);
+			} else {
+				break;
+			}
+		}
+		return longestLeftmost;
+	}
+
 	private boolean longestMatchDetected(SortedSet<Groups> nextgroups) {
 		if (groups == null || groups.isEmpty()) {
 			return false;
 		}
 		Groups longest = groups.first();
-		for (Groups nextgroup: nextgroups) {
+		for (Groups nextgroup : nextgroups) {
 			if (nextgroup.subsumes(longest)) {
 				return false;
 			}
@@ -151,12 +184,48 @@ public class SimpleMatcher implements Matcher {
 	}
 
 	@Override
+	public long start(int no) {
+		if (groups.isEmpty()) {
+			return -1;
+		}
+		Groups longest = groups.first();
+		if (!longest.isComplete()) {
+			process(longest);
+		}
+		return longest.getStart(no);
+	}
+
+	@Override
 	public long end() {
 		if (groups.isEmpty()) {
 			return -1;
 		}
 		Groups longest = groups.first();
 		return longest.getEnd();
+	}
+
+	@Override
+	public long end(int no) {
+		if (groups.isEmpty()) {
+			return -1;
+		}
+		Groups longest = groups.first();
+		if (!longest.isComplete()) {
+			process(longest);
+		}
+		return longest.getEnd(no);
+	}
+
+	private void process(Groups groups) {
+		long groupStart = groups.getStart();
+		finderState = NFAMatcherState.of(finder.getStart(), new Groups(), groupStart);
+		input.move(groupStart);
+		while (!input.finished() && input.current() < groups.getEnd()) {
+			byte b = input.next();
+			long current = input.current();
+			finderState = finderState.next(b, current);
+		}
+		groups.update(finderState.getGroups().first());
 	}
 
 	@Override
@@ -167,7 +236,25 @@ public class SimpleMatcher implements Matcher {
 		Groups longest = groups.first();
 		return input.slice(longest.getStart(), longest.getEnd()).getString();
 	}
-	
+
+	@Override
+	public String group(int no) {
+		if (groups.isEmpty()) {
+			return null;
+		}
+		Groups longest = groups.first();
+		if (!longest.isComplete()) {
+			process(longest);
+		}
+		long start = longest.getStart(no);
+		long end = longest.getEnd(no);
+		if (start != -1 && end != -1 && start <= end) {
+			return input.slice(start, end).getString();
+		} else {
+			return null;
+		}
+	}
+
 	@Override
 	public List<String> groups() {
 		List<String> textgroups = new ArrayList<>(groups.size());

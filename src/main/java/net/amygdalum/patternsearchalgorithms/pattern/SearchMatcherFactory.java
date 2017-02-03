@@ -32,7 +32,7 @@ public class SearchMatcherFactory implements MatcherFactory {
 		NFABuilder builder = new NFABuilder(nfa.getCharset());
 		
 		NFAComponent base = nfa.clone().asComponent();
-		NFAComponent selfloop = builder.matchStarLoop(builder.match(MIN_VALUE, MAX_VALUE));
+		NFAComponent selfloop = builder.matchStarLoop(builder.match(MIN_VALUE, MAX_VALUE)).silent();
 		NFAComponent finder = builder.matchConcatenation(asList(selfloop, base));
 		
 		NFA finderNFA = finder.toFullNFA(nfa.getCharset());

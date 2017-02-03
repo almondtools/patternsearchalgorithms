@@ -45,7 +45,10 @@ public class StateClone {
 		List<Pair<State, State>> next = new ArrayList<>();
 
 		if (state.isAccepting()) {
-			cloned.accept();
+			cloned.setAccepting();
+		}
+		if (state.isSilent()) {
+			cloned.setSilent();
 		}
 		for (Transition transition : state.transitions()) {
 			State target = transition.getTarget();

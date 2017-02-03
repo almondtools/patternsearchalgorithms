@@ -97,6 +97,29 @@ public class NFAMatcherState {
 			this.state = state;
 			this.groups = groups;
 		}
+		
+		@Override
+		public int hashCode() {
+			return state.hashCode() + groups.hashCode() * 17;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj) {
+				return true;
+			}
+			if (obj == null) {
+				return false;
+			}
+			if (getClass() != obj.getClass()) {
+				return false;
+			}
+			Item that = (Item) obj;
+			return this.state == that.state
+				&& this.groups.equals(that.groups);
+		}
+
+
 
 		@Override
 		public String toString() {

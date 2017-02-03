@@ -16,7 +16,7 @@ public class NFAComponent implements Cloneable {
 
 	public NFA toFullNFA(Charset charset) {
 		if (end != null) {
-			end.accept();
+			end.setAccepting();
 		}
 		return new NFA(start, charset);
 	}
@@ -40,6 +40,16 @@ public class NFAComponent implements Cloneable {
 		}
 		
 		return new NFAComponent(end, start);
+	}
+
+	public NFAComponent silent() {
+		WorkSet<State> todo = new WorkSet<>();
+		todo.add(start);
+		while (!todo.isEmpty()) {
+			State current = todo.remove();
+			current.setSilent();
+		}		
+		return this;
 	}
 
 	@Override

@@ -191,7 +191,10 @@ public class NFA implements Cloneable {
 			while (pos > -1) {
 				State state = states[pos];
 				if (state.isAccepting()) {
-					representative.accept();
+					representative.setAccepting();
+				}
+				if (!state.isSilent()) {
+					representative.setSilent(false);
 				}
 				mapping.put(state, representative);
 				pos = bits.nextSetBit(pos + 1);
@@ -271,15 +274,17 @@ public class NFA implements Cloneable {
 	}
 
 	private void transferAccept(BitSet bits, State dState) {
+		boolean accepting = false;
+		boolean silent = true;
 		int pos = bits.nextSetBit(0);
-		while (pos > -1) {
+		while (pos > -1 && (silent || !accepting)) {
 			State state = states[pos];
-			if (state.isAccepting()) {
-				dState.accept();
-				return;
-			}
+			accepting |= state.isAccepting();
+			silent &= state.isSilent();
 			pos = bits.nextSetBit(pos + 1);
 		}
+		dState.setAccepting(accepting);
+		dState.setSilent(silent);
 	}
 
 	private BitSet next(BitSet bits, byte value) {
@@ -428,7 +433,10 @@ public class NFA implements Cloneable {
 				}
 				State target = epsilon.getTarget();
 				if (target.isAccepting()) {
-					state.accept();
+					state.setAccepting();
+				}
+				if (!target.isSilent()) {
+					state.setSilent(false);
 				}
 				for (OrdinaryTransition t : target.ordinaries()) {
 					Transition inlined = t.asPrototype()
@@ -491,7 +499,7 @@ public class NFA implements Cloneable {
 	public NFAComponent asComponent() {
 		State end = new State();
 		for (State accept : acceptStates()) {
-			accept.accept(false);
+			accept.setAccepting(false);
 			accept.addTransition(new EpsilonTransition(accept, end));
 		}
 		return new NFAComponent(start, end);

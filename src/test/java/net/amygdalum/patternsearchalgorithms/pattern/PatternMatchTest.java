@@ -133,6 +133,24 @@ public class PatternMatchTest {
 	}
 
 	@Test
+	public void testStarLoop() throws Exception {
+		Pattern pattern = patterns.compile("a*");
+		assertTrue(pattern.matcher("").matches());
+		assertTrue(pattern.matcher("a").matches());
+		assertTrue(pattern.matcher("aa").matches());
+		assertFalse(pattern.matcher("b").matches());
+	}
+
+	@Test
+	public void testPlusLoop() throws Exception {
+		Pattern pattern = patterns.compile("a+");
+		assertTrue(pattern.matcher("a").matches());
+		assertTrue(pattern.matcher("aa").matches());
+		assertFalse(pattern.matcher("").matches());
+		assertFalse(pattern.matcher("b").matches());
+	}
+
+	@Test
 	public void testOptional() throws Exception {
 		Pattern pattern = patterns.compile("a?");
 		assertTrue(pattern.matcher("a").matches());
@@ -261,6 +279,17 @@ public class PatternMatchTest {
 		assertThat(matcher.start(), equalTo(6l));
 		assertThat(matcher.end(), equalTo(10l));
 		assertThat(matcher.group(), equalTo("abbc"));
+	}
+
+	@Test
+	public void testFindPattern3emptyMatch() throws Exception {
+		Pattern pattern = patterns.compile("a*");
+		Matcher matcher = pattern.matcher("xxxabababacxxxx");
+		boolean success = matcher.find();
+		assertTrue(success);
+		assertThat(matcher.start(), equalTo(0l));
+		assertThat(matcher.end(), equalTo(0l));
+		assertThat(matcher.group(), equalTo(""));
 	}
 
 	@Test
@@ -417,28 +446,28 @@ public class PatternMatchTest {
 		assertThat(matcher.groups(), containsInAnyOrder("a"));
 		success = matcher.find();
 		assertThat(matcher.group(), equalTo("ab"));
-		assertThat(matcher.groups(), containsInAnyOrder("ab","b"));
+		assertThat(matcher.groups(), containsInAnyOrder("ab", "b"));
 		success = matcher.find();
 		assertThat(matcher.group(), equalTo("aba"));
-		assertThat(matcher.groups(), containsInAnyOrder("aba","ba","a"));
+		assertThat(matcher.groups(), containsInAnyOrder("aba", "ba", "a"));
 		success = matcher.find();
 		assertThat(matcher.group(), equalTo("abab"));
-		assertThat(matcher.groups(), containsInAnyOrder("abab","bab","ab","b"));
+		assertThat(matcher.groups(), containsInAnyOrder("abab", "bab", "ab", "b"));
 		success = matcher.find();
 		assertThat(matcher.group(), equalTo("ababa"));
-		assertThat(matcher.groups(), containsInAnyOrder("ababa","baba","aba","ba","a"));
+		assertThat(matcher.groups(), containsInAnyOrder("ababa", "baba", "aba", "ba", "a"));
 		success = matcher.find();
 		assertThat(matcher.group(), equalTo("ababab"));
-		assertThat(matcher.groups(), containsInAnyOrder("ababab","babab","abab","bab","ab","b"));
+		assertThat(matcher.groups(), containsInAnyOrder("ababab", "babab", "abab", "bab", "ab", "b"));
 		success = matcher.find();
 		assertThat(matcher.group(), equalTo("abababa"));
-		assertThat(matcher.groups(), containsInAnyOrder("abababa","bababa","ababa","baba","aba","ba","a"));
+		assertThat(matcher.groups(), containsInAnyOrder("abababa", "bababa", "ababa", "baba", "aba", "ba", "a"));
 		success = matcher.find();
 		assertFalse(success);
 	}
 
 	@Test
-	public void testPrefixPattern7longestOverlapping() throws Exception {
+	public void testFindPattern7longestOverlapping() throws Exception {
 		Pattern pattern = patterns.compile("ca|cabc|bcdec|ec", LONGEST_WITH_OVERLAP);
 		Matcher matcher = pattern.matcher("xxxcabcdecabcxxxx");
 		boolean success = matcher.find();
@@ -457,7 +486,7 @@ public class PatternMatchTest {
 	}
 
 	@Test
-	public void testPrefixPattern7longestNonOverlapping() throws Exception {
+	public void testFindPattern7longestNonOverlapping() throws Exception {
 		Pattern pattern = patterns.compile("ca|cabc|bcdec|ec", LONGEST_NON_OVERLAPPING);
 		Matcher matcher = pattern.matcher("xxxcabcdecabcxxxx");
 		boolean success = matcher.find();
@@ -547,6 +576,72 @@ public class PatternMatchTest {
 	}
 
 	@Test
+	public void testMatchSubmatchPattern8() throws Exception {
+		Pattern pattern = patterns.compile("([a-e]|(abc))+", LONGEST_NON_OVERLAPPING);
+		Matcher matcher = pattern.matcher("cabcdecabc");
+		boolean success = matcher.matches();
+		assertTrue(success);
+		assertThat(matcher.start(), equalTo(0l));
+		assertThat(matcher.end(), equalTo(10l));
+		assertThat(matcher.group(), equalTo("cabcdecabc"));
+		assertThat(matcher.start(1), equalTo(7l));
+		assertThat(matcher.end(1), equalTo(10l));
+		assertThat(matcher.group(1), equalTo("abc"));
+		assertThat(matcher.start(2), equalTo(7l));
+		assertThat(matcher.end(2), equalTo(10l));
+		assertThat(matcher.group(2), equalTo("abc"));
+	}
+
+	@Test
+	public void testPrefixSubmatchPattern8() throws Exception {
+		Pattern pattern = patterns.compile("([a-e]|(abc))+", LONGEST_NON_OVERLAPPING);
+		Matcher matcher = pattern.matcher("cabcdecabcxxxx");
+		boolean success = matcher.prefixes();
+		assertTrue(success);
+		assertThat(matcher.start(), equalTo(0l));
+		assertThat(matcher.end(), equalTo(10l));
+		assertThat(matcher.group(), equalTo("cabcdecabc"));
+		assertThat(matcher.start(1), equalTo(7l));
+		assertThat(matcher.end(1), equalTo(10l));
+		assertThat(matcher.group(1), equalTo("abc"));
+		assertThat(matcher.start(2), equalTo(7l));
+		assertThat(matcher.end(2), equalTo(10l));
+		assertThat(matcher.group(2), equalTo("abc"));
+	}
+
+	@Test
+	public void testFindSubmatchPattern8() throws Exception {
+		Pattern pattern = patterns.compile("([a-e]|(abc))+", LONGEST_NON_OVERLAPPING);
+		Matcher matcher = pattern.matcher("xxxcabcdecabcxxxx");
+		boolean success = matcher.find();
+		assertTrue(success);
+		assertThat(matcher.start(), equalTo(3l));
+		assertThat(matcher.end(), equalTo(13l));
+		assertThat(matcher.group(), equalTo("cabcdecabc"));
+		assertThat(matcher.start(1), equalTo(10l));
+		assertThat(matcher.end(1), equalTo(13l));
+		assertThat(matcher.group(1), equalTo("abc"));
+		assertThat(matcher.start(2), equalTo(10l));
+		assertThat(matcher.end(2), equalTo(13l));
+		assertThat(matcher.group(2), equalTo("abc"));
+	}
+
+	@Test
+	public void testCharClassRange() throws Exception {
+		Pattern pattern = patterns.compile("[a-e]");
+		assertTrue(pattern.matcher("a").matches());
+		assertTrue(pattern.matcher("b").matches());
+		assertTrue(pattern.matcher("c").matches());
+		assertTrue(pattern.matcher("d").matches());
+		assertTrue(pattern.matcher("e").matches());
+		assertFalse(pattern.matcher("" + before('a')).matches());
+		assertFalse(pattern.matcher("" + after('e')).matches());
+		assertFalse(pattern.matcher(".").matches());
+		assertFalse(pattern.matcher("\n").matches());
+		assertFalse(pattern.matcher("").matches());
+	}
+
+	@Test
 	public void testCharClassWithSingleDash() throws Exception {
 		Pattern pattern = patterns.compile("[b-]");
 		assertTrue(pattern.matcher("b").matches());
@@ -571,6 +666,16 @@ public class PatternMatchTest {
 		assertFalse(pattern.matcher("").matches());
 		assertFalse(pattern.matcher("b").matches());
 		assertFalse(pattern.matcher("d").matches());
+	}
+
+	@Test
+	public void testCharClassMatchingDot() throws Exception {
+		Pattern pattern = patterns.compile("[a\\.]+");
+		assertTrue(pattern.matcher(".").matches());
+		assertTrue(pattern.matcher("a.").matches());
+		assertTrue(pattern.matcher(".a").matches());
+		assertFalse(pattern.matcher("\n").matches());
+		assertFalse(pattern.matcher("").matches());
 	}
 
 	@Test
@@ -622,16 +727,6 @@ public class PatternMatchTest {
 		assertTrue(pattern.matcher("ff").matches());
 		assertTrue(pattern.matcher("dd").matches());
 		assertTrue(pattern.matcher("bb").matches());
-		assertFalse(pattern.matcher("").matches());
-	}
-
-	@Test
-	public void testCharClassMatchingDot() throws Exception {
-		Pattern pattern = patterns.compile("[a\\.]+");
-		assertTrue(pattern.matcher(".").matches());
-		assertTrue(pattern.matcher("a.").matches());
-		assertTrue(pattern.matcher(".a").matches());
-		assertFalse(pattern.matcher("\n").matches());
 		assertFalse(pattern.matcher("").matches());
 	}
 

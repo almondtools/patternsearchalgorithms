@@ -9,8 +9,9 @@ import java.util.Set;
 public class State implements Cloneable {
 
 	private int id;
-	private boolean accept;
 	private List<Transition> transitions;
+	private boolean accept;
+	private boolean silent;
 
 	public State() {
 		id = System.identityHashCode(this);
@@ -30,11 +31,11 @@ public class State implements Cloneable {
 		return id;
 	}
 	
-	public void accept() {
+	public void setAccepting() {
 		this.accept = true;
 	}
 
-	public void accept(boolean accept) {
+	public void setAccepting(boolean accept) {
 		this.accept = accept;
 	}
 
@@ -42,6 +43,18 @@ public class State implements Cloneable {
 		return accept;
 	}
 
+	public void setSilent() {
+		this.silent = true;
+	}
+	
+	public void setSilent(boolean silent) {
+		this.silent = silent;
+	}
+	
+	public boolean isSilent() {
+		return silent;
+	}
+	
 	public State asPrototype() {
 		return new State(transitions.size());
 	}

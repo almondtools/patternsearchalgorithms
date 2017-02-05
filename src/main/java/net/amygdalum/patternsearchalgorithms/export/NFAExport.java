@@ -83,7 +83,7 @@ public class NFAExport {
 	private String decode(Charset charset, byte value) {
 		String decoded = "#" + String.format("%02X ", value);
 		char[] chars = ByteEncoding.decode(charset, value).toCharArray();
-		if (chars.length == 1 && Character.isDefined(chars[0]) && !Character.isISOControl(chars[0])) {
+		if (chars.length == 1 && Character.isDefined(chars[0]) && chars[0] >= 32 && chars[0] < 128) {
 			decoded = String.valueOf(chars[0]);
 		}
 		return decoded;

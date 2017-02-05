@@ -25,10 +25,10 @@ public class SimpleMatcher implements Matcher {
 	private SortedSet<Groups> groups;
 	private SortedSet<Groups> nextgroups;
 
-	public SimpleMatcher(SearchMode mode, DFA matching, NFA finding, ByteProvider input) {
+	public SimpleMatcher(SearchMode mode, DFA matcher, NFA finder, ByteProvider input) {
 		this.mode = mode;
-		this.matcher = matching;
-		this.finder = finding;
+		this.matcher = matcher;
+		this.finder = finder;
 		this.input = input;
 		this.start = input.current();
 		this.matcherState = -2;

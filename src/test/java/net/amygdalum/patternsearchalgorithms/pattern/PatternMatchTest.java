@@ -282,6 +282,23 @@ public class PatternMatchTest {
 	}
 
 	@Test
+	public void testFindPattern2() throws Exception {
+		Pattern pattern = patterns.compile("(([^:]+)://)?([^:/]+)(:([0-9]+))?(/.*)");
+		Matcher matcher = pattern.matcher(""
+			+ "http://www.linux.com/\n"
+			+ "http://www.thelinuxshow.com/main.php3\n"
+			+ "http");
+		assertTrue(matcher.find());
+		assertThat(matcher.group(), equalTo("http://www.linux.com/"));
+		assertThat(matcher.start(), equalTo(0l));
+		assertThat(matcher.end(), equalTo(21l));
+		assertTrue(matcher.find());
+		assertThat(matcher.group(), equalTo("http://www.thelinuxshow.com/main.php3"));
+		assertThat(matcher.start(), equalTo(22l));
+		assertThat(matcher.end(), equalTo(59l));
+	}
+
+	@Test
 	public void testFindPattern3emptyMatch() throws Exception {
 		Pattern pattern = patterns.compile("a*");
 		Matcher matcher = pattern.matcher("xxxabababacxxxx");
@@ -669,6 +686,17 @@ public class PatternMatchTest {
 	}
 
 	@Test
+	public void testCharClassWithComplementDotAll() throws Exception {
+		Pattern pattern = patterns.compile("[^bd]", DOT_ALL);
+		assertTrue(pattern.matcher("a").matches());
+		assertTrue(pattern.matcher("c").matches());
+		assertTrue(pattern.matcher("e").matches());
+		assertFalse(pattern.matcher("").matches());
+		assertFalse(pattern.matcher("b").matches());
+		assertFalse(pattern.matcher("d").matches());
+	}
+
+	@Test
 	public void testCharClassMatchingDot() throws Exception {
 		Pattern pattern = patterns.compile("[a\\.]+");
 		assertTrue(pattern.matcher(".").matches());
@@ -680,7 +708,7 @@ public class PatternMatchTest {
 
 	@Test
 	public void testCompClassWithMinValue() throws Exception {
-		Pattern pattern = patterns.compile("[^" + MIN_VALUE + "]");
+		Pattern pattern = patterns.compile("[^" + MIN_VALUE + "]", DOT_ALL);
 		assertTrue(pattern.matcher("a").matches());
 		assertTrue(pattern.matcher(String.valueOf(MIN_VALUE_INC)).matches());
 		assertTrue(pattern.matcher(String.valueOf(MAX_VALUE)).matches());
@@ -690,7 +718,7 @@ public class PatternMatchTest {
 
 	@Test
 	public void testCompClassWithMinValueInc() throws Exception {
-		Pattern pattern = patterns.compile("[^" + MIN_VALUE_INC + "]");
+		Pattern pattern = patterns.compile("[^" + MIN_VALUE_INC + "]", DOT_ALL);
 		assertTrue(pattern.matcher("a").matches());
 		assertTrue(pattern.matcher(String.valueOf(MIN_VALUE)).matches());
 		assertTrue(pattern.matcher(String.valueOf(MAX_VALUE)).matches());
@@ -700,7 +728,7 @@ public class PatternMatchTest {
 
 	@Test
 	public void testCompClassWithMaxValue() throws Exception {
-		Pattern pattern = patterns.compile("[^" + MAX_VALUE + "]");
+		Pattern pattern = patterns.compile("[^" + MAX_VALUE + "]", DOT_ALL);
 		assertTrue(pattern.matcher("a").matches());
 		assertTrue(pattern.matcher(String.valueOf(MAX_VALUE_DEC)).matches());
 		assertTrue(pattern.matcher(String.valueOf(MIN_VALUE)).matches());
@@ -710,7 +738,7 @@ public class PatternMatchTest {
 
 	@Test
 	public void testCompClassWithMaxValueDec() throws Exception {
-		Pattern pattern = patterns.compile("[^" + MAX_VALUE_DEC + "]");
+		Pattern pattern = patterns.compile("[^" + MAX_VALUE_DEC + "]", DOT_ALL);
 		assertTrue(pattern.matcher("a").matches());
 		assertTrue(pattern.matcher(String.valueOf(MAX_VALUE)).matches());
 		assertTrue(pattern.matcher(String.valueOf(MIN_VALUE)).matches());

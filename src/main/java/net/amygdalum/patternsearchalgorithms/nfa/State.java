@@ -6,12 +6,13 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-public class State implements Cloneable {
+public class State implements Cloneable, Comparable<State> {
 
 	private int id;
 	private List<Transition> transitions;
 	private boolean accept;
 	private boolean silent;
+	private boolean live;
 
 	public State() {
 		id = System.identityHashCode(this);
@@ -30,7 +31,7 @@ public class State implements Cloneable {
 	public int getId() {
 		return id;
 	}
-	
+
 	public void setAccepting() {
 		this.accept = true;
 	}
@@ -43,18 +44,30 @@ public class State implements Cloneable {
 		return accept;
 	}
 
+	public void setLive() {
+		this.live = true;
+	}
+
+	public void setLive(boolean live) {
+		this.live = live;
+	}
+
+	public boolean isLive() {
+		return live;
+	}
+
 	public void setSilent() {
 		this.silent = true;
 	}
-	
+
 	public void setSilent(boolean silent) {
 		this.silent = silent;
 	}
-	
+
 	public boolean isSilent() {
 		return silent;
 	}
-	
+
 	public State asPrototype() {
 		return new State(transitions.size());
 	}
@@ -112,6 +125,11 @@ public class State implements Cloneable {
 			states.add(transition.getTarget());
 		}
 		return states;
+	}
+
+	@Override
+	public int compareTo(State that) {
+		return Integer.compare(this.id, that.id);
 	}
 
 	@Override

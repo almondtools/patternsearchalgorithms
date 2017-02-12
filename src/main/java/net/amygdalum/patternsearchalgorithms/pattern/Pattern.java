@@ -64,4 +64,8 @@ public class Pattern {
 		return factory.newMatcher(bytes);
 	}
 
+	public Matcher matcher(ByteProvider input) {
+		return factory.newMatcher(input);
+	}
+
 }

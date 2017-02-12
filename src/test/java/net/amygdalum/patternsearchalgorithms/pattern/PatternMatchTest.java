@@ -12,8 +12,7 @@ import static net.amygdalum.patternsearchalgorithms.pattern.SearchMode.LONGEST_W
 import static net.amygdalum.util.text.CharUtils.after;
 import static net.amygdalum.util.text.CharUtils.before;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -66,20 +65,6 @@ public class PatternMatchTest {
 		assertFalse(pattern.matcher("b\u0085").matches());
 		assertFalse(pattern.matcher("b\u2028").matches());
 		assertFalse(pattern.matcher("b\u2029").matches());
-	}
-
-	@Test
-	public void testDotNotFindsAll() throws Exception {
-		Pattern pattern = patterns.compile(".+");
-		Matcher bna = pattern.matcher("b\na");
-		assertTrue(bna.find());
-		assertThat(bna.group(), equalTo("b"));
-		assertTrue(bna.find());
-		assertThat(bna.group(), equalTo("a"));
-		Matcher bn = pattern.matcher("b\n");
-		assertTrue(bn.find());
-		assertThat(bn.group(), equalTo("b"));
-		assertFalse(bn.find());
 	}
 
 	@Test
@@ -217,6 +202,38 @@ public class PatternMatchTest {
 	}
 
 	@Test
+	public void testMatchAllIdempotent() throws Exception {
+		Pattern pattern = patterns.compile("ab*c", ALL);
+		Matcher matcher = pattern.matcher("ac");
+		assertTrue(matcher.matches());
+		assertTrue(matcher.matches());
+	}
+
+	@Test
+	public void testMatchLongestNonOverlappingIdempotent() throws Exception {
+		Pattern pattern = patterns.compile("ab*c", LONGEST_NON_OVERLAPPING);
+		Matcher matcher = pattern.matcher("ac");
+		assertTrue(matcher.matches());
+		assertTrue(matcher.matches());
+	}
+
+	@Test
+	public void testMatchLongestOverlappingIdempotent() throws Exception {
+		Pattern pattern = patterns.compile("ab*c", LONGEST_WITH_OVERLAP);
+		Matcher matcher = pattern.matcher("ac");
+		assertTrue(matcher.matches());
+		assertTrue(matcher.matches());
+	}
+
+	@Test
+	public void testMatchFirstNonOverlappingIdempotent() throws Exception {
+		Pattern pattern = patterns.compile("ab*c", FIRSTMATCH_NON_OVERLAPPING);
+		Matcher matcher = pattern.matcher("ac");
+		assertTrue(matcher.matches());
+		assertTrue(matcher.matches());
+	}
+
+	@Test
 	public void testMatchPattern1() throws Exception {
 		Pattern pattern = patterns.compile("ab*c");
 		Matcher matcher = pattern.matcher("ac");
@@ -231,6 +248,9 @@ public class PatternMatchTest {
 		matcher = pattern.matcher("abbbc");
 		assertTrue(matcher.matches());
 		assertThat(matcher.group(), equalTo("abbbc"));
+		matcher = pattern.matcher("c");
+		assertFalse(matcher.matches());
+		assertThat(matcher.group(), nullValue());
 	}
 
 	@Test
@@ -260,339 +280,6 @@ public class PatternMatchTest {
 	}
 
 	@Test
-	public void testFindPattern1midMatch() throws Exception {
-		Pattern pattern = patterns.compile("ab*c");
-		Matcher matcher = pattern.matcher("xxxabbbbcxxxx");
-		boolean success = matcher.find();
-		assertTrue(success);
-		assertThat(matcher.start(), equalTo(3l));
-		assertThat(matcher.end(), equalTo(9l));
-		assertThat(matcher.group(), equalTo("abbbbc"));
-	}
-
-	@Test
-	public void testFindPattern1deadEnd() throws Exception {
-		Pattern pattern = patterns.compile("ab*c");
-		Matcher matcher = pattern.matcher("abbxxxabbcxxxx");
-		boolean success = matcher.find();
-		assertTrue(success);
-		assertThat(matcher.start(), equalTo(6l));
-		assertThat(matcher.end(), equalTo(10l));
-		assertThat(matcher.group(), equalTo("abbc"));
-	}
-
-	@Test
-	public void testFindPattern2() throws Exception {
-		Pattern pattern = patterns.compile("(([^:]+)://)?([^:/]+)(:([0-9]+))?(/.*)");
-		Matcher matcher = pattern.matcher(""
-			+ "http://www.linux.com/\n"
-			+ "http://www.thelinuxshow.com/main.php3\n"
-			+ "http");
-		assertTrue(matcher.find());
-		assertThat(matcher.group(), equalTo("http://www.linux.com/"));
-		assertThat(matcher.start(), equalTo(0l));
-		assertThat(matcher.end(), equalTo(21l));
-		assertTrue(matcher.find());
-		assertThat(matcher.group(), equalTo("http://www.thelinuxshow.com/main.php3"));
-		assertThat(matcher.start(), equalTo(22l));
-		assertThat(matcher.end(), equalTo(59l));
-	}
-
-	@Test
-	public void testFindPattern3emptyMatch() throws Exception {
-		Pattern pattern = patterns.compile("a*");
-		Matcher matcher = pattern.matcher("xxxabababacxxxx");
-		boolean success = matcher.find();
-		assertTrue(success);
-		assertThat(matcher.start(), equalTo(0l));
-		assertThat(matcher.end(), equalTo(0l));
-		assertThat(matcher.group(), equalTo(""));
-	}
-
-	@Test
-	public void testFindPattern4longestNonOverlapping() throws Exception {
-		Pattern pattern = patterns.compile("aba", LONGEST_NON_OVERLAPPING);
-		Matcher matcher = pattern.matcher("xxxabababacxxxx");
-		boolean success = matcher.find();
-		assertTrue(success);
-		assertThat(matcher.start(), equalTo(3l));
-		assertThat(matcher.end(), equalTo(6l));
-		assertThat(matcher.group(), equalTo("aba"));
-		success = matcher.find();
-		assertTrue(success);
-		assertThat(matcher.start(), equalTo(7l));
-		assertThat(matcher.end(), equalTo(10l));
-		assertThat(matcher.group(), equalTo("aba"));
-		success = matcher.find();
-		assertFalse(success);
-	}
-
-	@Test
-	public void testFindPattern4longestOverlapping() throws Exception {
-		Pattern pattern = patterns.compile("aba", LONGEST_WITH_OVERLAP);
-		Matcher matcher = pattern.matcher("xxxabababacxxxx");
-		boolean success = matcher.find();
-		assertTrue(success);
-		assertThat(matcher.start(), equalTo(3l));
-		assertThat(matcher.end(), equalTo(6l));
-		assertThat(matcher.group(), equalTo("aba"));
-		success = matcher.find();
-		assertTrue(success);
-		assertThat(matcher.start(), equalTo(5l));
-		assertThat(matcher.end(), equalTo(8l));
-		assertThat(matcher.group(), equalTo("aba"));
-		success = matcher.find();
-		assertTrue(success);
-		assertThat(matcher.start(), equalTo(7l));
-		assertThat(matcher.end(), equalTo(10l));
-		assertThat(matcher.group(), equalTo("aba"));
-		success = matcher.find();
-		assertFalse(success);
-	}
-
-	@Test
-	public void testFindPattern4firstMatchNonOverlapping() throws Exception {
-		Pattern pattern = patterns.compile("aba", SearchMode.FIRSTMATCH_NON_OVERLAPPING);
-		Matcher matcher = pattern.matcher("xxxabababacxxxx");
-		boolean success = matcher.find();
-		assertTrue(success);
-		assertThat(matcher.start(), equalTo(3l));
-		assertThat(matcher.end(), equalTo(6l));
-		assertThat(matcher.group(), equalTo("aba"));
-		success = matcher.find();
-		assertTrue(success);
-		assertThat(matcher.start(), equalTo(7l));
-		assertThat(matcher.end(), equalTo(10l));
-		assertThat(matcher.group(), equalTo("aba"));
-		success = matcher.find();
-		assertFalse(success);
-	}
-
-	@Test
-	public void testFindPattern4all() throws Exception {
-		Pattern pattern = patterns.compile("aba", ALL);
-		Matcher matcher = pattern.matcher("xxxabababacxxxx");
-		boolean success = matcher.find();
-		assertTrue(success);
-		assertThat(matcher.start(), equalTo(3l));
-		assertThat(matcher.end(), equalTo(6l));
-		assertThat(matcher.group(), equalTo("aba"));
-		success = matcher.find();
-		assertTrue(success);
-		assertThat(matcher.start(), equalTo(5l));
-		assertThat(matcher.end(), equalTo(8l));
-		assertThat(matcher.group(), equalTo("aba"));
-		success = matcher.find();
-		assertTrue(success);
-		assertThat(matcher.start(), equalTo(7l));
-		assertThat(matcher.end(), equalTo(10l));
-		assertThat(matcher.group(), equalTo("aba"));
-		success = matcher.find();
-		assertFalse(success);
-	}
-
-	@Test
-	public void testFindPattern5longestNonOverlapping() throws Exception {
-		Pattern pattern = patterns.compile("(a|b)+", LONGEST_NON_OVERLAPPING);
-		Matcher matcher = pattern.matcher("xxxabababacxxxx");
-		boolean success = matcher.find();
-		assertTrue(success);
-		assertThat(matcher.start(), equalTo(3l));
-		assertThat(matcher.end(), equalTo(10l));
-		assertThat(matcher.group(), equalTo("abababa"));
-		assertThat(matcher.groups(), contains("abababa"));
-		success = matcher.find();
-		assertFalse(success);
-	}
-
-	@Test
-	public void testFindPattern5longestOverlapping() throws Exception {
-		Pattern pattern = patterns.compile("(a|b)+", LONGEST_WITH_OVERLAP);
-		Matcher matcher = pattern.matcher("xxxabababacxxxx");
-		boolean success = matcher.find();
-		assertTrue(success);
-		assertThat(matcher.start(), equalTo(3l));
-		assertThat(matcher.end(), equalTo(10l));
-		assertThat(matcher.group(), equalTo("abababa"));
-		assertThat(matcher.groups(), contains("abababa"));
-		success = matcher.find();
-		assertFalse(success);
-	}
-
-	@Test
-	public void testFindPattern5firstMatchNonOverlapping() throws Exception {
-		Pattern pattern = patterns.compile("(a|b)+", SearchMode.FIRSTMATCH_NON_OVERLAPPING);
-		Matcher matcher = pattern.matcher("xxxabababacxxxx");
-		boolean success = matcher.find();
-		assertTrue(success);
-		assertThat(matcher.start(), equalTo(3l));
-		assertThat(matcher.end(), equalTo(4l));
-		assertThat(matcher.group(), equalTo("a"));
-		assertThat(matcher.groups(), contains("a"));
-		success = matcher.find();
-		assertThat(matcher.group(), equalTo("b"));
-		assertThat(matcher.groups(), contains("b"));
-		success = matcher.find();
-		assertThat(matcher.group(), equalTo("a"));
-		assertThat(matcher.groups(), contains("a"));
-		success = matcher.find();
-		assertThat(matcher.group(), equalTo("b"));
-		assertThat(matcher.groups(), contains("b"));
-		success = matcher.find();
-		assertThat(matcher.group(), equalTo("a"));
-		assertThat(matcher.groups(), contains("a"));
-		success = matcher.find();
-		assertThat(matcher.group(), equalTo("b"));
-		assertThat(matcher.groups(), contains("b"));
-		success = matcher.find();
-		assertThat(matcher.group(), equalTo("a"));
-		assertThat(matcher.groups(), contains("a"));
-		success = matcher.find();
-		assertFalse(success);
-	}
-
-	@Test
-	public void testFindPattern5all() throws Exception {
-		Pattern pattern = patterns.compile("(a|b)+", ALL);
-		Matcher matcher = pattern.matcher("xxxabababacxxxx");
-		boolean success = matcher.find();
-		assertTrue(success);
-		assertThat(matcher.start(), equalTo(3l));
-		assertThat(matcher.end(), equalTo(4l));
-		assertThat(matcher.group(), equalTo("a"));
-		assertThat(matcher.groups(), containsInAnyOrder("a"));
-		success = matcher.find();
-		assertThat(matcher.group(), equalTo("ab"));
-		assertThat(matcher.groups(), containsInAnyOrder("ab", "b"));
-		success = matcher.find();
-		assertThat(matcher.group(), equalTo("aba"));
-		assertThat(matcher.groups(), containsInAnyOrder("aba", "ba", "a"));
-		success = matcher.find();
-		assertThat(matcher.group(), equalTo("abab"));
-		assertThat(matcher.groups(), containsInAnyOrder("abab", "bab", "ab", "b"));
-		success = matcher.find();
-		assertThat(matcher.group(), equalTo("ababa"));
-		assertThat(matcher.groups(), containsInAnyOrder("ababa", "baba", "aba", "ba", "a"));
-		success = matcher.find();
-		assertThat(matcher.group(), equalTo("ababab"));
-		assertThat(matcher.groups(), containsInAnyOrder("ababab", "babab", "abab", "bab", "ab", "b"));
-		success = matcher.find();
-		assertThat(matcher.group(), equalTo("abababa"));
-		assertThat(matcher.groups(), containsInAnyOrder("abababa", "bababa", "ababa", "baba", "aba", "ba", "a"));
-		success = matcher.find();
-		assertFalse(success);
-	}
-
-	@Test
-	public void testFindPattern7longestOverlapping() throws Exception {
-		Pattern pattern = patterns.compile("ca|cabc|bcdec|ec", LONGEST_WITH_OVERLAP);
-		Matcher matcher = pattern.matcher("xxxcabcdecabcxxxx");
-		boolean success = matcher.find();
-		assertTrue(success);
-		assertThat(matcher.start(), equalTo(3l));
-		assertThat(matcher.end(), equalTo(7l));
-		assertThat(matcher.group(), equalTo("cabc"));
-		success = matcher.find();
-		assertTrue(success);
-		assertThat(matcher.group(), equalTo("bcdec"));
-		success = matcher.find();
-		assertTrue(success);
-		assertThat(matcher.group(), equalTo("cabc"));
-		success = matcher.find();
-		assertFalse(success);
-	}
-
-	@Test
-	public void testFindPattern7longestNonOverlapping() throws Exception {
-		Pattern pattern = patterns.compile("ca|cabc|bcdec|ec", LONGEST_NON_OVERLAPPING);
-		Matcher matcher = pattern.matcher("xxxcabcdecabcxxxx");
-		boolean success = matcher.find();
-		assertTrue(success);
-		assertThat(matcher.start(), equalTo(3l));
-		assertThat(matcher.end(), equalTo(7l));
-		assertThat(matcher.group(), equalTo("cabc"));
-		success = matcher.find();
-		assertTrue(success);
-		assertThat(matcher.group(), equalTo("ec"));
-		success = matcher.find();
-		assertFalse(success);
-	}
-
-	@Test
-	public void testPrefixPattern1fullMatch() throws Exception {
-		Pattern pattern = patterns.compile("ab*c");
-		Matcher matcher = pattern.matcher("abbc");
-		boolean success = matcher.prefixes();
-		assertTrue(success);
-		assertThat(matcher.start(), equalTo(0l));
-		assertThat(matcher.end(), equalTo(4l));
-		assertThat(matcher.group(), equalTo("abbc"));
-	}
-
-	@Test
-	public void testPrefixPattern1partMatch() throws Exception {
-		Pattern pattern = patterns.compile("ab*c");
-		Matcher matcher = pattern.matcher("abbccc");
-		boolean success = matcher.prefixes();
-		assertTrue(success);
-		assertThat(matcher.start(), equalTo(0l));
-		assertThat(matcher.end(), equalTo(4l));
-		assertThat(matcher.group(), equalTo("abbc"));
-	}
-
-	@Test
-	public void testPrefixPattern1noMatch() throws Exception {
-		Pattern pattern = patterns.compile("ab*c");
-		Matcher matcher = pattern.matcher("cabbccc");
-		boolean success = matcher.prefixes();
-		assertFalse(success);
-	}
-
-	@Test
-	public void testPrefixPattern5simple() throws Exception {
-		Pattern pattern = patterns.compile("(a|b)+");
-		Matcher matcher = pattern.matcher("axxxx");
-		boolean success = matcher.prefixes();
-		assertTrue(success);
-		assertThat(matcher.start(), equalTo(0l));
-		assertThat(matcher.end(), equalTo(1l));
-		assertThat(matcher.group(), equalTo("a"));
-	}
-
-	@Test
-	public void testPrefixPattern5longest() throws Exception {
-		Pattern pattern = patterns.compile("(a|b)+", LONGEST_NON_OVERLAPPING);
-		Matcher matcher = pattern.matcher("abaxxxx");
-		boolean success = matcher.prefixes();
-		assertTrue(success);
-		assertThat(matcher.start(), equalTo(0l));
-		assertThat(matcher.end(), equalTo(3l));
-		assertThat(matcher.group(), equalTo("aba"));
-	}
-
-	@Test
-	public void testPrefixPattern5first() throws Exception {
-		Pattern pattern = patterns.compile("(a|b)+", FIRSTMATCH_NON_OVERLAPPING);
-		Matcher matcher = pattern.matcher("abaxxxx");
-		boolean success = matcher.prefixes();
-		assertTrue(success);
-		assertThat(matcher.start(), equalTo(0l));
-		assertThat(matcher.end(), equalTo(1l));
-		assertThat(matcher.group(), equalTo("a"));
-	}
-
-	@Test
-	public void testPrefixPattern6all() throws Exception {
-		Pattern pattern = patterns.compile("cabc|ab");
-		Matcher matcher = pattern.matcher("cabcxxxx");
-		boolean success = matcher.prefixes();
-		assertTrue(success);
-		assertThat(matcher.start(), equalTo(0l));
-		assertThat(matcher.end(), equalTo(4l));
-		assertThat(matcher.group(), equalTo("cabc"));
-	}
-
-	@Test
 	public void testMatchSubmatchPattern8() throws Exception {
 		Pattern pattern = patterns.compile("([a-e]|(abc))+", LONGEST_NON_OVERLAPPING);
 		Matcher matcher = pattern.matcher("cabcdecabc");
@@ -606,40 +293,6 @@ public class PatternMatchTest {
 		assertThat(matcher.group(1), equalTo("abc"));
 		assertThat(matcher.start(2), equalTo(7l));
 		assertThat(matcher.end(2), equalTo(10l));
-		assertThat(matcher.group(2), equalTo("abc"));
-	}
-
-	@Test
-	public void testPrefixSubmatchPattern8() throws Exception {
-		Pattern pattern = patterns.compile("([a-e]|(abc))+", LONGEST_NON_OVERLAPPING);
-		Matcher matcher = pattern.matcher("cabcdecabcxxxx");
-		boolean success = matcher.prefixes();
-		assertTrue(success);
-		assertThat(matcher.start(), equalTo(0l));
-		assertThat(matcher.end(), equalTo(10l));
-		assertThat(matcher.group(), equalTo("cabcdecabc"));
-		assertThat(matcher.start(1), equalTo(7l));
-		assertThat(matcher.end(1), equalTo(10l));
-		assertThat(matcher.group(1), equalTo("abc"));
-		assertThat(matcher.start(2), equalTo(7l));
-		assertThat(matcher.end(2), equalTo(10l));
-		assertThat(matcher.group(2), equalTo("abc"));
-	}
-
-	@Test
-	public void testFindSubmatchPattern8() throws Exception {
-		Pattern pattern = patterns.compile("([a-e]|(abc))+", LONGEST_NON_OVERLAPPING);
-		Matcher matcher = pattern.matcher("xxxcabcdecabcxxxx");
-		boolean success = matcher.find();
-		assertTrue(success);
-		assertThat(matcher.start(), equalTo(3l));
-		assertThat(matcher.end(), equalTo(13l));
-		assertThat(matcher.group(), equalTo("cabcdecabc"));
-		assertThat(matcher.start(1), equalTo(10l));
-		assertThat(matcher.end(1), equalTo(13l));
-		assertThat(matcher.group(1), equalTo("abc"));
-		assertThat(matcher.start(2), equalTo(10l));
-		assertThat(matcher.end(2), equalTo(13l));
 		assertThat(matcher.group(2), equalTo("abc"));
 	}
 

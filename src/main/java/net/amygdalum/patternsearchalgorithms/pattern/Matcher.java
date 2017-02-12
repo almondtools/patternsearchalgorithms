@@ -1,7 +1,5 @@
 package net.amygdalum.patternsearchalgorithms.pattern;
 
-import java.util.List;
-
 public interface Matcher {
 
 	boolean matches();
@@ -18,7 +16,5 @@ public interface Matcher {
 
 	String group();
 	String group(int no);
-
-	List<String> groups();
 
 }

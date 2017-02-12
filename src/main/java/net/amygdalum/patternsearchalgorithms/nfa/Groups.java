@@ -7,10 +7,12 @@ import java.util.Queue;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import net.amygdalum.util.io.ByteProvider;
+
 public class Groups implements Comparable<Groups> {
 
 	private static final SortedSet<SubMatch> EMPTY = new TreeSet<>();
-	
+
 	private long start;
 	private long end;
 	private SubMatch[] submatches;
@@ -52,6 +54,11 @@ public class Groups implements Comparable<Groups> {
 	public boolean invalid() {
 		return start == -1
 			|| end == -1;
+	}
+
+	public boolean valid() {
+		return start > -1
+			&& end > -1;
 	}
 
 	public boolean subsumes(Groups group) {
@@ -132,6 +139,16 @@ public class Groups implements Comparable<Groups> {
 		return newsubmatches;
 	}
 
+	public void reset() {
+		this.start = -1;
+		this.end = -1;
+	}
+
+	public void update(long start, long end) {
+		this.start = start;
+		this.end = end;
+	}
+
 	public void update(Groups group) {
 		submatches = group.submatches;
 		allsubmatches = group.allsubmatches;
@@ -153,7 +170,7 @@ public class Groups implements Comparable<Groups> {
 		}
 		return compare;
 	}
-	
+
 	@Override
 	public int hashCode() {
 		return Long.valueOf(start).hashCode() * 7 + Long.valueOf(end).hashCode() * 5 + allsubmatches.hashCode();
@@ -177,7 +194,19 @@ public class Groups implements Comparable<Groups> {
 			&& this.allsubmatches.equals(that.allsubmatches);
 	}
 
-	private static int compareSubMatches(SortedSet<SubMatch>submatches1, SortedSet<SubMatch> submatches2) {
+	public void process(ByteProvider input, NFA grouper) {
+		long groupStart = start;
+		NFAMatcherState state = NFAMatcherState.of(grouper.getStart(), new Groups(), groupStart);
+		input.move(groupStart);
+		while (!input.finished() && input.current() < getEnd()) {
+			byte b = input.next();
+			long current = input.current();
+			state = state.next(b, current);
+		}
+		update(state.getGroups().first());
+	}
+
+	private static int compareSubMatches(SortedSet<SubMatch> submatches1, SortedSet<SubMatch> submatches2) {
 		Queue<SubMatch> sub1 = new PriorityQueue<>(submatches1);
 		Queue<SubMatch> sub2 = new PriorityQueue<>(submatches2);
 		while (!sub1.isEmpty() && !sub2.isEmpty()) {
@@ -229,7 +258,7 @@ public class Groups implements Comparable<Groups> {
 
 		@Override
 		public int hashCode() {
-			return Long.valueOf(start).hashCode() * 17 + Long.valueOf(end).hashCode() * 13 ;
+			return Long.valueOf(start).hashCode() * 17 + Long.valueOf(end).hashCode() * 13;
 		}
 
 		@Override
@@ -249,4 +278,5 @@ public class Groups implements Comparable<Groups> {
 		}
 
 	}
+
 }

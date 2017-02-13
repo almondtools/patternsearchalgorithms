@@ -62,7 +62,19 @@ public class SearchMatcherFactory implements MatcherFactory {
 
 	@Override
 	public Matcher newMatcher(ByteProvider input) {
-		return new SearchMatcher(mode, finder, backmatcher, grouper, input);
+		if (mode.findLongest()) {
+			if (mode.findOverlapping()) {
+				return new SearchLongestOverlappingMatcher(finder, backmatcher, grouper, input);
+			} else {
+				return new SearchLongestNonOverlappingMatcher(finder, backmatcher, grouper, input);
+			}
+		} else {
+			if (mode.findOverlapping()) {
+				return new SearchAllOverlappingMatcher(finder, backmatcher, grouper, input);
+			} else {
+				return new SearchAllNonOverlappingMatcher(finder, backmatcher, grouper, input);
+			}
+		}
 	}
 
 }

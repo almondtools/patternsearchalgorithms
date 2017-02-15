@@ -3,8 +3,8 @@ package net.amygdalum.patternsearchalgorithms;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
+import net.amygdalum.patternsearchalgorithms.automaton.bytes.NFA;
 import net.amygdalum.patternsearchalgorithms.export.NFAExport;
-import net.amygdalum.patternsearchalgorithms.nfa.NFA;
 
 public final class Debug {
 

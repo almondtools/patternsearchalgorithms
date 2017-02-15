@@ -20,9 +20,11 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Rule;
 import org.junit.Test;
 
-import net.amygdalum.patternsearchalgorithms.pattern.OptimizationTargetRule.Only;
+import net.amygdalum.patternsearchalgorithms.pattern.PatternRule.Charsets;
+import net.amygdalum.patternsearchalgorithms.pattern.PatternRule.Only;
 
 @Only({ MATCH, SEARCH })
+@Charsets({"UTF-8", "CHARS"})
 public class PatternMatchTest {
 
 	private static final char MAX_VALUE_DEC = before(MAX_VALUE);

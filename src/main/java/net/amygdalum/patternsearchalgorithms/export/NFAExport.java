@@ -6,10 +6,10 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
 
-import net.amygdalum.patternsearchalgorithms.nfa.EpsilonTransition;
-import net.amygdalum.patternsearchalgorithms.nfa.NFA;
-import net.amygdalum.patternsearchalgorithms.nfa.OrdinaryTransition;
-import net.amygdalum.patternsearchalgorithms.nfa.State;
+import net.amygdalum.patternsearchalgorithms.automaton.bytes.EpsilonTransition;
+import net.amygdalum.patternsearchalgorithms.automaton.bytes.NFA;
+import net.amygdalum.patternsearchalgorithms.automaton.bytes.OrdinaryTransition;
+import net.amygdalum.patternsearchalgorithms.automaton.bytes.State;
 import net.amygdalum.util.text.ByteEncoding;
 
 public class NFAExport {

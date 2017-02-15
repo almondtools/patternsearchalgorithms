@@ -1,7 +1,6 @@
 package net.amygdalum.patternsearchalgorithms.pattern;
 
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 
 public class CharsetOption implements PatternOption {
 
@@ -17,7 +16,7 @@ public class CharsetOption implements PatternOption {
 				return (CharsetOption) option;
 			}
 		}
-		return new CharsetOption(StandardCharsets.UTF_8);
+		return null;
 	} 
 	
 	public Charset getCharset() {

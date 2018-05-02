@@ -19,6 +19,8 @@ public abstract class Pattern {
 		}
 	}
 
+	public abstract String pattern();
+
 	public abstract Matcher matcher(String input);
 	public abstract Matcher matcher(CharProvider input);
 

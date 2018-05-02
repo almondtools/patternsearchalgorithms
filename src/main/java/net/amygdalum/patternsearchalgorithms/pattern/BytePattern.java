@@ -26,6 +26,7 @@ class BytePattern extends Pattern {
 		this.charset = charset;
 	}
 
+	@Override
 	public String pattern() {
 		return pattern;
 	}

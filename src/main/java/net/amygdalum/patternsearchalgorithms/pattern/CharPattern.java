@@ -24,6 +24,7 @@ class CharPattern extends Pattern {
 		this.factory = factory;
 	}
 
+	@Override
 	public String pattern() {
 		return pattern;
 	}

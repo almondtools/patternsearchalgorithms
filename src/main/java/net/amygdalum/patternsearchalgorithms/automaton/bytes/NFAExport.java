@@ -1,4 +1,4 @@
-package net.amygdalum.patternsearchalgorithms.export;
+package net.amygdalum.patternsearchalgorithms.automaton.bytes;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -6,10 +6,6 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
 
-import net.amygdalum.patternsearchalgorithms.automaton.bytes.EpsilonTransition;
-import net.amygdalum.patternsearchalgorithms.automaton.bytes.NFA;
-import net.amygdalum.patternsearchalgorithms.automaton.bytes.OrdinaryTransition;
-import net.amygdalum.patternsearchalgorithms.automaton.bytes.State;
 import net.amygdalum.util.text.ByteEncoding;
 
 public class NFAExport {

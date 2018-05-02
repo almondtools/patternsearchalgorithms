@@ -459,4 +459,5 @@ public class PatternMatchTest {
 	public void testOpenBracket() throws Exception {
 		patterns.compile("[");
 	}
+	
 }

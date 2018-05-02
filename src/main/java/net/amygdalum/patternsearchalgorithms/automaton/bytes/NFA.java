@@ -82,12 +82,22 @@ public class NFA implements Cloneable {
 		eliminateDeadStates();
 		determinizeStates();
 		eliminateDeadStates();
+		totalizeStates();
 		minimizeStates();
 	}
 
-	public Object tabled() {
-		determinize();
-		return null;
+	private void totalizeStates() {
+		State error = new State();
+		for (State state : states) {
+			if (state.isLive()) {
+				for (ByteRange range : byteRanges) {
+					if (state.nexts(range.from[0]).isEmpty()) {
+						state.addTransition(new BytesTransition(state, range.from[0], range.to[0], error));
+					}
+				}
+			}
+		}
+		init(start);
 	}
 
 	private void minimizeStates() {
@@ -392,7 +402,7 @@ public class NFA implements Cloneable {
 	}
 
 	private void eliminateDeadStates() {
-		
+
 		Queue<State> todo = new WorkSet<>();
 		todo.add(start);
 		while (!todo.isEmpty()) {
@@ -475,8 +485,8 @@ public class NFA implements Cloneable {
 		State end = new State();
 		for (State state : states) {
 			if (state.isAccepting()) {
-			state.setAccepting(false);
-			state.addTransition(new EpsilonTransition(state, end));
+				state.setAccepting(false);
+				state.addTransition(new EpsilonTransition(state, end));
 			}
 		}
 		return new NFAComponent(start, end);

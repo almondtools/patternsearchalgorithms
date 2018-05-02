@@ -1,10 +1,8 @@
-package net.amygdalum.patternsearchalgorithms;
+package net.amygdalum.patternsearchalgorithms.automaton.chars;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-import net.amygdalum.patternsearchalgorithms.automaton.bytes.NFA;
-import net.amygdalum.patternsearchalgorithms.export.NFAExport;
 
 public final class Debug {
 

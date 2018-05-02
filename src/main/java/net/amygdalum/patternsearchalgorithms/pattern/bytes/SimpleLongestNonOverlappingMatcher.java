@@ -100,6 +100,10 @@ public class SimpleLongestNonOverlappingMatcher implements Matcher {
 			groups.update(localstart, input.current());
 			return true;
 		}
+		if (!groups.invalid()) {
+			input.move(groups.getEnd());
+			return true;
+		}
 		return false;
 	}
 

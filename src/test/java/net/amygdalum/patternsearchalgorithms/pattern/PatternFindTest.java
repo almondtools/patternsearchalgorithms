@@ -18,20 +18,25 @@ import net.amygdalum.patternsearchalgorithms.pattern.PatternRule.Charsets;
 import net.amygdalum.patternsearchalgorithms.pattern.PatternRule.Only;
 
 @Only({ MATCH, SEARCH })
-@Charsets({"UTF-8", "CHARS"})
+@Charsets({ "UTF-8", "CHARS" })
 public class PatternFindTest {
 
 	@Rule
 	public PatternRule patterns = new PatternRule();
 
 	@Test
-	public void testDotNotFindsAll() throws Exception {
+	public void testDotNotMatchesLineBreaks() throws Exception {
 		Pattern pattern = patterns.compile(".+");
 		Matcher bna = pattern.matcher("b\na");
 		assertTrue(bna.find());
 		assertThat(bna.group(), equalTo("b"));
 		assertTrue(bna.find());
 		assertThat(bna.group(), equalTo("a"));
+	}
+
+	@Test
+	public void testDotAcceptsLinebreaksAtEnd() throws Exception {
+		Pattern pattern = patterns.compile(".+");
 		Matcher bn = pattern.matcher("b\n");
 		assertTrue(bn.find());
 		assertThat(bn.group(), equalTo("b"));
@@ -373,6 +378,28 @@ public class PatternFindTest {
 		assertThat(matcher.start(2), equalTo(10l));
 		assertThat(matcher.end(2), equalTo(13l));
 		assertThat(matcher.group(2), equalTo("abc"));
+	}
+
+	@Test
+	public void testBug1() throws Exception {
+		Pattern pattern = patterns.compile("ga{1,3}c(gc)?tc(gc)*", LONGEST_NON_OVERLAPPING);
+		Matcher matcher = pattern.matcher("taatgaaacgactcatcagaccgcgtgctttcttagcgtagaagctgatgatcttaaatttgccgttcttctcatcgaggaacaccggcttgataatct");
+
+		assertTrue(matcher.find());
+		assertThat(matcher.start(), equalTo(9l));
+		assertThat(matcher.end(), equalTo(14l));
+		assertThat(matcher.group(), equalTo("gactc"));
+	}
+
+	@Test
+	public void testBug2() throws Exception {
+		Pattern pattern = patterns.compile("ga{1,3}c(gc)?tc(gc)*", LONGEST_NON_OVERLAPPING);
+		Matcher matcher = pattern.matcher("caaaagaaaaactcagggcgcgggcaacggcgttcgcttgaactccgctgaaaattatgccataggcgatgagcaaaaagacggcgaacagaacgccca");
+
+		assertTrue(matcher.find());
+		assertThat(matcher.start(), equalTo(39l));
+		assertThat(matcher.end(), equalTo(45l));
+		assertThat(matcher.group(), equalTo("gaactc"));
 	}
 
 }

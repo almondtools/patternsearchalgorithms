@@ -156,6 +156,8 @@ public class SearchLongestNonOverlappingMatcher implements Matcher {
 				groupsIterator.remove();
 			} else if (current.overlaps(groups) && groups.getEnd() != current.getStart()) {
 				groupsIterator.remove();
+			} else {
+				break;
 			}
 		}
 		

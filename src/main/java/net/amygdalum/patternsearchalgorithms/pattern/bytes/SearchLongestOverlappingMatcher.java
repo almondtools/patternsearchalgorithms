@@ -152,6 +152,8 @@ public class SearchLongestOverlappingMatcher implements Matcher {
 			if (current.subsumes(groups)) {
 				groups = current;
 				groupsIterator.remove();
+			} else {
+				break;
 			}
 		}
 		

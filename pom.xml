@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>net.amygdalum</groupId>
 	<artifactId>patternsearchalgorithms</artifactId>
-	<version>0.0.3-SNAPSHOT</version>
+	<version>0.0.3</version>
 	<name>${project.groupId}:${project.artifactId}</name>
 	<url>https://github.com/almondtools/patternsearchalgorithms</url>
 	<licenses>
@@ -23,7 +23,7 @@
 		<connection>scm:git:git@github.com:almondtools/patternsearchalgorithms.git</connection>
 		<developerConnection>scm:git:git@github.com:almondtools/patternsearchalgorithms.git</developerConnection>
 		<url>git@github.com:almondtools/patternsearchalgorithms.git</url>
-		<tag>HEAD</tag>
+		<tag>patternsearchalgorithms-0.0.3</tag>
 	</scm>
 	<distributionManagement>
 		<snapshotRepository>

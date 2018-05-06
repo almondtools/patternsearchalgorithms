@@ -73,16 +73,13 @@ This benchmark does not only check the performance but also the correctness of t
 - DFA packages cannot compute the same groups as NFA packages - accepted difference
 - Non-Posix-NFA packages (as jregex and java.util.regex) do not always detect the longest leftmost match - accepted difference
 
-Using PatternSearchAlgorithms
-===============================
-
 Maven Dependency
-----------------
+================
 
 ```xml
 <dependency>
     <groupId>net.amygdalum</groupId>
-    <artifactId>patternsearchalgorithms</artifactId>
+    <artifactId>regexparser</artifactId>
     <version>0.0.3</version>
 </dependency>
 ```

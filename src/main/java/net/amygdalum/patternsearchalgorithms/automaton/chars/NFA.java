@@ -3,12 +3,14 @@ package net.amygdalum.patternsearchalgorithms.automaton.chars;
 import static java.lang.Character.MAX_VALUE;
 import static java.lang.Character.MIN_VALUE;
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -17,13 +19,13 @@ import java.util.Set;
 
 import net.amygdalum.util.bits.BitSet;
 import net.amygdalum.util.builders.ArrayLists;
-import net.amygdalum.util.map.BitSetObjectMap;
 import net.amygdalum.util.text.CharRange;
 import net.amygdalum.util.worklist.WorkSet;
 
 public class NFA implements Cloneable {
 
 	private State start;
+	private State error;
 	private List<CharRange> charRanges;
 	private State[] states;
 	private List<Transition>[] reachingTransitions;
@@ -37,7 +39,16 @@ public class NFA implements Cloneable {
 		this.charRanges = computeEquivalentCharRanges(start);
 		this.states = enumerateStates(start);
 		this.reachingTransitions = reachingTransitions(states);
-		markLive(states, reachingTransitions);
+		clean();
+	}
+
+	private void init(State start, State error) {
+		this.start = start;
+		this.error = error;
+		this.charRanges = computeEquivalentCharRanges(start);
+		this.states = enumerateStates(start);
+		this.reachingTransitions = reachingTransitions(states);
+		clean();
 	}
 
 	public State getStart() {
@@ -52,35 +63,56 @@ public class NFA implements Cloneable {
 		return charRanges;
 	}
 
-	private static void markLive(State[] states, List<Transition>[] reachingTransitions) {
-		WorkSet<State> todo = new WorkSet<>();
+	public boolean isLive(State state) {
+		return state == start || !reachingTransitions[state.getId()].isEmpty();
+	}
+
+	private void clean() {
+		WorkSet<State> live = new WorkSet<>();
+		Set<State> dead = new HashSet<>();
 		for (State state : states) {
 			if (state.isAccepting()) {
-				todo.add(state);
+				live.add(state);
+			} else {
+				dead.add(state);
 			}
 		}
-		while (!todo.isEmpty()) {
-			State current = todo.remove();
-			current.setLive();
-			List<Transition> nexts = reachingTransitions[current.getId()];
-			for (Transition next : nexts) {
-				todo.add(next.getOrigin());
+		while (!live.isEmpty()) {
+			State current = live.remove();
+			List<Transition> liveTransitions = reachingTransitions[current.getId()];
+			for (Transition liveTransition : liveTransitions) {
+				State nextLive = liveTransition.getOrigin();
+				live.add(nextLive);
+				dead.remove(nextLive);
 			}
 		}
+		
+		if (error != null) {
+			dead.remove(error);
+		}
+		
+		List<Transition> empty = emptyList();
+		for (State current : dead) {
+			current.updateTransitions(empty);
+			List<Transition> deadTransitions = reachingTransitions[current.getId()];
+			for (Transition deadTransition : deadTransitions) {
+				State origin = deadTransition.getOrigin();
+				origin.removeTransition(deadTransition);
+			}
+			reachingTransitions[current.getId()] = empty;
+		}
+
 	}
 
 	public void prune() {
 		eliminateEpsilons(true);
 		mergeAdjacentTransitions();
-		eliminateDeadStates();
 	}
 
 	public void determinize() {
 		eliminateEpsilons(false);
 		mergeAdjacentTransitions();
-		eliminateDeadStates();
 		determinizeStates();
-		eliminateDeadStates();
 		totalizeStates();
 		minimizeStates();
 	}
@@ -88,7 +120,7 @@ public class NFA implements Cloneable {
 	private void totalizeStates() {
 		State error = new State();
 		for (State state : states) {
-			if (state.isLive()) {
+			if (isLive(state)) {
 				for (CharRange range : charRanges) {
 					if (state.nexts(range.from).isEmpty()) {
 						state.addTransition(new CharsTransition(state, range.from, range.to, error));
@@ -96,7 +128,7 @@ public class NFA implements Cloneable {
 				}
 			}
 		}
-		init(start);
+		init(start, error);
 	}
 
 	private void minimizeStates() {
@@ -228,64 +260,54 @@ public class NFA implements Cloneable {
 	}
 
 	private void determinizeStates() {
-		BitSetObjectMap<State> dStates = new BitSetObjectMap<State>(null);
-		Queue<BitSet> todo = new WorkSet<>();
+		Map<Set<State>, State> dStates = new HashMap<>();
+		Queue<Set<State>> todo = new WorkSet<>();
 
-		BitSet startbits = BitSet.bits(states.length, start.getId());
-		todo.add(startbits);
+		Set<State> startset = new HashSet<>();
+		startset.add(start);
+		todo.add(startset);
 		State dStart = new State();
-		dStates.add(startbits, dStart);
+		dStates.put(startset, dStart);
 
 		while (!todo.isEmpty()) {
-			BitSet current = todo.remove();
+			Set<State> current = todo.remove();
 			State dState = dStates.get(current);
 			transferAccept(current, dState);
 
 			for (CharRange range : charRanges) {
 				char from = range.from;
 				char to = range.to;
-				BitSet next = next(current, from);
-				State target = dStates.get(next);
+				Set<State> nextset = new HashSet<>();
+				for (State state : current) {
+					for (OrdinaryTransition transition : state.nexts(from)) {
+						nextset.add(transition.getTarget());
+					}
+				}
+				State target = dStates.get(nextset);
 				if (target == null) {
+					todo.add(nextset);
 					target = new State();
-					dStates.add(next, target);
+					dStates.put(nextset, target);
 				}
 				if (from == to) {
 					dState.addTransition(new CharTransition(dState, from, target));
 				} else {
 					dState.addTransition(new CharsTransition(dState, from, to, target));
 				}
-				todo.add(next);
 			}
 		}
 		init(dStart);
 	}
 
-	private void transferAccept(BitSet bits, State dState) {
+	private void transferAccept(Set<State> states, State dState) {
 		boolean accepting = false;
 		boolean silent = true;
-		int pos = bits.nextSetBit(0);
-		while (pos > -1 && (silent || !accepting)) {
-			State state = states[pos];
+		for (State state : states) {
 			accepting |= state.isAccepting();
 			silent &= state.isSilent();
-			pos = bits.nextSetBit(pos + 1);
 		}
 		dState.setAccepting(accepting);
 		dState.setSilent(silent);
-	}
-
-	private BitSet next(BitSet bits, char value) {
-		BitSet result = BitSet.empty(states.length);
-		int pos = bits.nextSetBit(0);
-		while (pos > -1) {
-			State state = states[pos];
-			for (OrdinaryTransition transition : state.nexts(value)) {
-				result.set(transition.getTarget().getId());
-			}
-			pos = bits.nextSetBit(pos + 1);
-		}
-		return result;
 	}
 
 	private static State[] enumerateStates(State start) {
@@ -308,8 +330,11 @@ public class NFA implements Cloneable {
 		todo.add(start);
 		while (!todo.isEmpty()) {
 			State state = todo.remove();
-			for (OrdinaryTransition transition : state.ordinaries()) {
-				acc.split(transition.getFrom(), transition.getTo());
+			for (Transition transition : state.transitions()) {
+				if (transition instanceof OrdinaryTransition) {
+					OrdinaryTransition ordinaryTransition = (OrdinaryTransition) transition;
+					acc.split(ordinaryTransition.getFrom(), ordinaryTransition.getTo());
+				}
 				todo.add(transition.getTarget());
 			}
 		}
@@ -364,6 +389,7 @@ public class NFA implements Cloneable {
 				state.updateTransitions(mergedTransitions);
 			}
 		}
+		clean();
 	}
 
 	private Transition tryJoin(Transition t1, Transition t2) {
@@ -398,26 +424,6 @@ public class NFA implements Cloneable {
 			}
 		}
 		return null;
-	}
-
-	private void eliminateDeadStates() {
-
-		Queue<State> todo = new WorkSet<>();
-		todo.add(start);
-		while (!todo.isEmpty()) {
-			State current = todo.remove();
-			Iterator<Transition> transitionIterator = current.transitions().iterator();
-			while (transitionIterator.hasNext()) {
-				Transition transition = transitionIterator.next();
-				State target = transition.getTarget();
-				if (target.isLive()) {
-					todo.add(target);
-				} else {
-					transitionIterator.remove();
-				}
-			}
-		}
-		init(start);
 	}
 
 	private void eliminateEpsilons(boolean preserveActions) {
@@ -461,6 +467,7 @@ public class NFA implements Cloneable {
 				}
 			}
 		}
+		init(start);
 	}
 
 	private Set<EpsilonTransition> transitiveEpsilons(Collection<EpsilonTransition> epsilons, boolean preserveActions) {

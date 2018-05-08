@@ -12,7 +12,6 @@ public class State implements Cloneable, Comparable<State> {
 	private List<Transition> transitions;
 	private boolean accept;
 	private boolean silent;
-	private boolean live;
 
 	public State() {
 		id = System.identityHashCode(this);
@@ -42,18 +41,6 @@ public class State implements Cloneable, Comparable<State> {
 
 	public boolean isAccepting() {
 		return accept;
-	}
-
-	public void setLive() {
-		this.live = true;
-	}
-
-	public void setLive(boolean live) {
-		this.live = live;
-	}
-
-	public boolean isLive() {
-		return live;
 	}
 
 	public void setSilent() {

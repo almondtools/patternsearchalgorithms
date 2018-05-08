@@ -21,11 +21,11 @@ public class NFAComponent implements Cloneable {
 
 	public NFAComponent reverse() {
 		WorkSet<Transition> todo = new WorkSet<>();
-		todo.addAll(start.transitions());
+		todo.addAll(start.out());
 		while (!todo.isEmpty()) {
 			Transition current = todo.remove();
 			State target = current.getTarget();
-			todo.addAll(target.transitions());
+			todo.addAll(target.out());
 		}
 		
 		for (Transition transition : todo.getDone()) {
@@ -33,8 +33,8 @@ public class NFAComponent implements Cloneable {
 			State target = transition.getTarget();
 			Action action = transition.getAction();
 			
-			origin.removeTransition(transition);
-			target.addTransition(transition.asPrototype().withOrigin(target).withTarget(origin).withAction(action));
+			transition.remove();
+			transition.asPrototype().withOrigin(target).withTarget(origin).withAction(action).connect();
 		}
 		
 		return new NFAComponent(end, start);

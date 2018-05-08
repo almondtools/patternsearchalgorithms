@@ -4,12 +4,15 @@ import static java.lang.Character.MAX_VALUE;
 import static java.lang.Character.MIN_VALUE;
 import static java.util.Arrays.asList;
 
+import java.nio.charset.Charset;
+
 import net.amygdalum.patternsearchalgorithms.automaton.bytes.DFA;
 import net.amygdalum.patternsearchalgorithms.automaton.bytes.NFA;
 import net.amygdalum.patternsearchalgorithms.automaton.bytes.NFABuilder;
 import net.amygdalum.patternsearchalgorithms.automaton.bytes.NFAComponent;
 import net.amygdalum.patternsearchalgorithms.pattern.Matcher;
 import net.amygdalum.patternsearchalgorithms.pattern.SearchMode;
+import net.amygdalum.regexparser.RegexNode;
 import net.amygdalum.util.io.ByteProvider;
 
 public class SearchMatcherFactory implements MatcherFactory {
@@ -26,39 +29,41 @@ public class SearchMatcherFactory implements MatcherFactory {
 		this.grouper = grouper;
 	}
 
-	public static SearchMatcherFactory compile(NFA nfa, SearchMode mode) {
-		return new SearchMatcherFactory(mode, finderFrom(nfa), backmatcherFrom(nfa), grouperFrom(nfa));
+	public static SearchMatcherFactory compile(RegexNode node, Charset charset, SearchMode mode) {
+		return new SearchMatcherFactory(mode, finderFrom(node, charset), backmatcherFrom(node, charset), grouperFrom(node, charset));
 	}
 
-	private static DFA finderFrom(NFA nfa) {
-		NFABuilder builder = new NFABuilder(nfa.getCharset());
-		
-		NFAComponent base = nfa.clone().asComponent();
+	private static DFA finderFrom(RegexNode node, Charset charset) {
+		NFABuilder builder = new NFABuilder(charset);
+
+		NFAComponent base = node.accept(builder);
 		NFAComponent selfloop = builder.matchStarLoop(builder.match(MIN_VALUE, MAX_VALUE)).silent();
 		NFAComponent finder = builder.matchConcatenation(asList(selfloop, base));
-		
-		NFA finderNFA = finder.toFullNFA(nfa.getCharset());
-		
+
+		NFA finderNFA = finder.toFullNFA(charset);
+
 		return DFA.from(finderNFA);
 	}
 
-	private static DFA backmatcherFrom(NFA nfa) {
-		NFAComponent base = nfa.clone().asComponent();
+	private static DFA backmatcherFrom(RegexNode node, Charset charset) {
+		NFABuilder builder = new NFABuilder(charset);
+
+		NFAComponent base = node.accept(builder);
 		NFAComponent reverse = base.reverse();
-		
-		NFA reverseNFA = reverse.toFullNFA(nfa.getCharset());
-		
+
+		NFA reverseNFA = reverse.toFullNFA(charset);
+
 		return DFA.from(reverseNFA);
 	}
 
-	private static NFA grouperFrom(NFA nfa) {
-		NFABuilder builder = new NFABuilder(nfa.getCharset());
-		
-		NFAComponent base = builder.matchGroup(nfa.clone().asComponent(), 0);
-		
-		NFA grouper = base.toFullNFA(nfa.getCharset());
+	private static NFA grouperFrom(RegexNode node, Charset charset) {
+		NFABuilder builder = new NFABuilder(charset);
+
+		NFAComponent base = builder.matchGroup(node.accept(builder), 0);
+
+		NFA grouper = base.toFullNFA(charset);
 		grouper.prune();
-		
+
 		return grouper;
 	}
 

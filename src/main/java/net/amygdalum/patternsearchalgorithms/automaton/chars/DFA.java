@@ -41,7 +41,7 @@ public class DFA {
 	public boolean accept(int s) {
 		return s >= accepting;
 	}
-	
+
 	public boolean silent(int s) {
 		return s <= silent;
 	}
@@ -67,13 +67,31 @@ public class DFA {
 			for (CharRange range : ranges) {
 				char c = range.from;
 				for (State state : states) {
-					List<OrdinaryTransition> nexts = state.nexts(c);
-					if (!nexts.isEmpty()) {
-						live.add(range);
+					for (Transition transition : state.out()) {
+						if (transition instanceof OrdinaryTransition && ((OrdinaryTransition) transition).accepts(c)) {
+							live.add(range);
+						}
 					}
 				}
 			}
 			return live;
+		}
+
+		private void computeTransitions() {
+			int[] transitions = new int[states.length * mapper.indexCount()];
+			for (int i = 0; i < states.length; i++) {
+				nextchar: for (int index = 0; index < mapper.indexCount(); index++) {
+					char c = mapper.representative(index);
+					for (Transition next : states[i].out()) {
+						if (next instanceof OrdinaryTransition && ((OrdinaryTransition) next).accepts(c)) {
+							transitions[i * mapper.indexCount() + index] = next.getTarget().getId();
+							continue nextchar;
+						}
+					}
+					transitions[i * mapper.indexCount() + index] = -1;
+				}
+			}
+			this.transitions = transitions;
 		}
 
 		private void partitionStates() {
@@ -103,22 +121,6 @@ public class DFA {
 			}
 		}
 
-		private void computeTransitions() {
-			int[] transitions = new int[states.length * mapper.indexCount()];
-			for (int i = 0; i < states.length; i++) {
-				for (int index = 0; index < mapper.indexCount(); index++) {
-					char c = mapper.representative(index);
-					List<OrdinaryTransition> next = states[i].nexts(c);
-					if (next.size() == 1) {
-						transitions[i * mapper.indexCount() + index] = next.get(0).getTarget().getId();
-					} else {
-						transitions[i * mapper.indexCount() + index] = -1;
-					}
-				}
-			}
-			this.transitions = transitions;
-		}
-
 		public boolean computeLowByte() {
 			Set<Integer> highbytes = new HashSet<>();
 			for (CharRange range : liveRanges) {
@@ -133,7 +135,7 @@ public class DFA {
 				return true;
 			} else {
 				char min = liveRanges.get(0).from;
-				char max = liveRanges.get(liveRanges.size() -1).to;
+				char max = liveRanges.get(liveRanges.size() - 1).to;
 				if (lowByte) {
 					return max - min <= 64;
 				} else {
@@ -141,6 +143,7 @@ public class DFA {
 				}
 			}
 		}
+
 		@Override
 		public int compare(State s1, State s2) {
 			boolean accept1 = s1.isAccepting();

@@ -1,11 +1,14 @@
 package net.amygdalum.patternsearchalgorithms.pattern.bytes;
 
+import java.nio.charset.Charset;
+
 import net.amygdalum.patternsearchalgorithms.automaton.bytes.DFA;
 import net.amygdalum.patternsearchalgorithms.automaton.bytes.NFA;
 import net.amygdalum.patternsearchalgorithms.automaton.bytes.NFABuilder;
 import net.amygdalum.patternsearchalgorithms.automaton.bytes.NFAComponent;
 import net.amygdalum.patternsearchalgorithms.pattern.Matcher;
 import net.amygdalum.patternsearchalgorithms.pattern.SearchMode;
+import net.amygdalum.regexparser.RegexNode;
 import net.amygdalum.util.io.ByteProvider;
 
 public class SimpleMatcherFactory implements MatcherFactory {
@@ -20,20 +23,21 @@ public class SimpleMatcherFactory implements MatcherFactory {
 		this.grouper = grouper;
 	}
 
-	public static SimpleMatcherFactory compile(NFA nfa, SearchMode mode) {
-		return new SimpleMatcherFactory(mode, matcherFrom(nfa), grouperFrom(nfa));
+	public static SimpleMatcherFactory compile(RegexNode node, Charset charset, SearchMode mode) {
+		return new SimpleMatcherFactory(mode, matcherFrom(node, charset), grouperFrom(node, charset));
 	}
 
-	public static DFA matcherFrom(NFA nfa) {
-		return DFA.from(nfa);
+	public static DFA matcherFrom(RegexNode node, Charset charset) {
+		NFABuilder builder = new NFABuilder(charset);
+		return DFA.from(builder.build(node));
 	}
 
-	private static NFA grouperFrom(NFA nfa) {
-		NFABuilder builder = new NFABuilder(nfa.getCharset());
+	private static NFA grouperFrom(RegexNode node, Charset charset) {
+		NFABuilder builder = new NFABuilder(charset);
 
-		NFAComponent base = builder.matchGroup(nfa.clone().asComponent(), 0);
+		NFAComponent base = builder.matchGroup(node.accept(builder), 0);
 
-		NFA finder = base.toFullNFA(nfa.getCharset());
+		NFA finder = base.toFullNFA(charset);
 		finder.prune();
 
 		return finder;

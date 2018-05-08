@@ -74,23 +74,23 @@ public class NFABuilder implements RegexNodeVisitor<NFAComponent> {
 			char c = chars[i];
 			State state = states[i];
 			State target = states[i + 1];
-			state.addTransition(new CharTransition(state, c, target));
+			new CharTransition(state, c, target).connect();
 		}
 	}
 
 	private void connect(State s, State e, char value) {
-		s.addTransition(new CharTransition(s, value, e));
+		new CharTransition(s, value, e).connect();
 	}
 
 	private void connect(State s, State e, char from, char to) {
-		s.addTransition(new CharsTransition(s, from, to, e));
+		new CharsTransition(s, from, to, e).connect();
 	}
 
 	public NFAComponent matchGroup(NFAComponent a, int no) {
 		State s = new State();
 		State e = new State();
-		s.addTransition(new EpsilonTransition(s, a.start).withAction(new StartGroup(no)));
-		a.end.addTransition(new EpsilonTransition(a.end, e).withAction(new EndGroup(no)));
+		new EpsilonTransition(s, a.start).withAction(new StartGroup(no)).connect();
+		new EpsilonTransition(a.end, e).withAction(new EndGroup(no)).connect();
 		return new NFAComponent(s, e);
 	}
 
@@ -102,8 +102,8 @@ public class NFABuilder implements RegexNodeVisitor<NFAComponent> {
 		State e = new State();
 		for (NFAComponent a : as) {
 			State n = a.start;
-			s.addTransition(new EpsilonTransition(s, n));
-			a.end.addTransition(new EpsilonTransition(a.end, e));
+			new EpsilonTransition(s, n).connect();
+			new EpsilonTransition(a.end, e).connect();
 		}
 		return new NFAComponent(s, e);
 	}
@@ -121,7 +121,7 @@ public class NFABuilder implements RegexNodeVisitor<NFAComponent> {
 		while (aIterator.hasNext()) {
 			NFAComponent a = aIterator.next();
 			if (last != null) {
-				last.addTransition(new EpsilonTransition(last, a.start));
+				new EpsilonTransition(last, a.start).connect();
 			}
 			last = a.end;
 		}
@@ -141,9 +141,9 @@ public class NFABuilder implements RegexNodeVisitor<NFAComponent> {
 	public NFAComponent matchOptional(NFAComponent a) {
 		State s = new State();
 		State e = new State();
-		s.addTransition(new EpsilonTransition(s, e));
-		s.addTransition(new EpsilonTransition(s, a.start));
-		a.end.addTransition(new EpsilonTransition(a.end, e));
+		new EpsilonTransition(s, e).connect();
+		new EpsilonTransition(s, a.start).connect();
+		new EpsilonTransition(a.end, e).connect();
 		return new NFAComponent(s, e);
 	}
 
@@ -160,16 +160,18 @@ public class NFABuilder implements RegexNodeVisitor<NFAComponent> {
 	public NFAComponent matchStarLoop(NFAComponent a) {
 		State s = new State();
 		State e = new State();
-		s.addTransition(new EpsilonTransition(s, a.start));
-		s.addTransition(new EpsilonTransition(s, e));
-		a.end.addTransition(new EpsilonTransition(a.end, a.start));
-		a.end.addTransition(new EpsilonTransition(a.end, e));
+		new EpsilonTransition(s, a.start).connect();
+		new EpsilonTransition(s, e).connect();
+		new EpsilonTransition(a.end, a.start).connect();
+		new EpsilonTransition(a.end, e).connect();
 		return new NFAComponent(s, e);
 	}
 
 	public NFAComponent matchRangeLoop(NFAComponent a, int start, int end) {
 		if (start == end) {
 			return matchFixedLoop(a, start);
+		} else if (start == 0) {
+			return matchUpToN(a, end);
 		} else {
 			NFAComponent aFixed = matchFixedLoop(a, start);
 			NFAComponent aUpToN = matchUpToN(a.clone(), end - start);
@@ -186,13 +188,13 @@ public class NFABuilder implements RegexNodeVisitor<NFAComponent> {
 	public NFAComponent matchUpToN(NFAComponent a, int count) {
 		State s = new State();
 		State e = new State();
-		s.addTransition(new EpsilonTransition(s, e));
+		new EpsilonTransition(s, e).connect();
 
 		State current = s;
 		for (int i = 0; i < count; i++) {
 			NFAComponent ai = a.clone();
-			current.addTransition(new EpsilonTransition(current, ai.start));
-			ai.end.addTransition(new EpsilonTransition(ai.end, e));
+			new EpsilonTransition(current, ai.start).connect();
+			new EpsilonTransition(ai.end, e).connect();
 			current = ai.end;
 		}
 		return new NFAComponent(s, e);

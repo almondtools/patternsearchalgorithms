@@ -11,6 +11,8 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 
+import net.amygdalum.regexparser.RegexNode;
+import net.amygdalum.regexparser.RegexParser;
 import net.amygdalum.util.io.StringCharProvider;
 
 public class NFADeterminizedTest {
@@ -197,6 +199,28 @@ public class NFADeterminizedTest {
 	}
 
 	@Test
+	public void testRangeLoopOptional() throws Exception {
+		NFA ab_question = automatonOf(nfaBuilder.matchRangeLoop(nfaBuilder.match("ab"), 0,1));
+		assertThat(matchSamples(ab_question, ""), contains(""));
+		assertThat(matchSamples(ab_question, "ab"), contains("ab"));
+		assertThat(matchSamples(ab_question, "a"), empty());
+		assertThat(matchSamples(ab_question, "b"), empty());
+		assertThat(matchSamples(ab_question, "abc"), empty());
+	}
+	
+	@Test
+	public void testBoundedLoopUpto() throws Exception {
+		NFA ab_question = automatonOf(nfaBuilder.matchRangeLoop(nfaBuilder.match("ab"), 0, 2));
+		assertThat(matchSamples(ab_question, ""), contains(""));
+		assertThat(matchSamples(ab_question, "ab"), contains("ab"));
+		assertThat(matchSamples(ab_question, "abab"), contains("abab"));
+		assertThat(matchSamples(ab_question, "ababab"), empty());
+		assertThat(matchSamples(ab_question, "a"), empty());
+		assertThat(matchSamples(ab_question, "b"), empty());
+		assertThat(matchSamples(ab_question, "abc"), empty());
+	}
+	
+	@Test
 	public void testMatchFixedLoop() throws Exception {
 		NFA a_2 = automatonOf(nfaBuilder.matchFixedLoop(nfaBuilder.match('a'), 2));
 		assertThat(matchSamples(a_2, "aa"), contains("aa"));
@@ -248,6 +272,31 @@ public class NFADeterminizedTest {
 		assertThat(matchSamples(aOrb, "o"), empty());
 		assertThat(matchSamples(aOrb, "u"), empty());
 		assertThat(matchSamples(aOrb, "üaö"), empty());
+	}
+
+	@Test
+	public void testMatchPattern1() throws Exception {
+		RegexParser parser = new RegexParser("(([^:]+)://)?([^:/]+)(:([0-9]+))?(/.*)");
+		RegexNode node = parser.parse();
+		NFA nfa = automatonOf(nfaBuilder.build(node));
+		assertThat(matchSamples(nfa, "http://www.linux.com/"), contains("http://www.linux.com/"));
+	}
+
+	@Test
+	public void testMatchPattern2() throws Exception {
+		RegexParser parser = new RegexParser("And God ([A-Za-z]+ |.){0,5}take them away");
+		RegexNode node = parser.parse();
+		NFA nfa = automatonOf(nfaBuilder.build(node));
+		assertThat(matchSamples(nfa, "And God take them away"), contains("And God take them away"));
+		assertThat(matchSamples(nfa, "And God should take them away"), contains("And God should take them away"));
+		assertThat(matchSamples(nfa, "And God should not take them away"), contains("And God should not take them away"));
+		assertThat(matchSamples(nfa, "And God .....take them away"), contains("And God .....take them away"));
+		assertThat(matchSamples(nfa, "And God ......take them away"), empty());
+	}
+
+	private static NFA automatonOf(NFA nfa) {
+		nfa.determinize();
+		return nfa;
 	}
 
 	private static NFA automatonOf(NFAComponent automaton) {

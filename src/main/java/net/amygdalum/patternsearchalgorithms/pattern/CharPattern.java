@@ -2,8 +2,6 @@ package net.amygdalum.patternsearchalgorithms.pattern;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import net.amygdalum.patternsearchalgorithms.automaton.chars.NFA;
-import net.amygdalum.patternsearchalgorithms.automaton.chars.NFABuilder;
 import net.amygdalum.patternsearchalgorithms.pattern.chars.MatcherFactory;
 import net.amygdalum.patternsearchalgorithms.pattern.chars.SearchMatcherFactory;
 import net.amygdalum.patternsearchalgorithms.pattern.chars.SimpleMatcherFactory;
@@ -34,7 +32,7 @@ class CharPattern extends Pattern {
 		CharProvider chars = new StringCharProvider(input, 0);
 		return factory.newMatcher(chars);
 	}
-	
+
 	@Override
 	public Matcher matcher(CharProvider input) {
 		return factory.newMatcher(input);
@@ -45,36 +43,34 @@ class CharPattern extends Pattern {
 		CharProvider chars = new StringCharProvider(new String(input, UTF_8), 0);
 		return factory.newMatcher(chars);
 	}
-	
+
 	@Override
 	public Matcher matcher(ByteProvider input) {
 		throw new UnsupportedOperationException();
 	}
 
 	static Pattern compile(String pattern, RegexOption[] regexOptions, OptimizationTarget optimizations, SearchMode mode) {
-		NFA nfa = buildNFAFrom(pattern, regexOptions);
+		RegexNode node = buildNFAFrom(pattern, regexOptions);
 
-		MatcherFactory factory = buildFactory(nfa, optimizations, mode);
+		MatcherFactory factory = buildFactory(node, optimizations, mode);
 
 		return new CharPattern(pattern, factory);
 	}
 
-
-	private static MatcherFactory buildFactory(NFA nfa, OptimizationTarget optimizationTarget, SearchMode mode) {
+	private static MatcherFactory buildFactory(RegexNode node, OptimizationTarget optimizationTarget, SearchMode mode) {
 		switch (optimizationTarget) {
 		case SEARCH:
-			return SearchMatcherFactory.compile(nfa, mode);
+			return SearchMatcherFactory.compile(node, mode);
 		case MATCH:
 		default:
-			return SimpleMatcherFactory.compile(nfa, mode);
+			return SimpleMatcherFactory.compile(node, mode);
 		}
 	}
 
-	public static NFA buildNFAFrom(String pattern, RegexOption[] regexOptions) {
+	public static RegexNode buildNFAFrom(String pattern, RegexOption[] regexOptions) {
 		RegexParserOption[] parserOptions = RegexOption.toRegexParserOptions(regexOptions);
 		RegexParser parser = new RegexParser(pattern, parserOptions);
-		RegexNode node = parser.parse();
-		return new NFABuilder().build(node);
+		return parser.parse();
 	}
 
 }

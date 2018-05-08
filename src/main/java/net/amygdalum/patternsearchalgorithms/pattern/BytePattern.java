@@ -2,8 +2,6 @@ package net.amygdalum.patternsearchalgorithms.pattern;
 
 import java.nio.charset.Charset;
 
-import net.amygdalum.patternsearchalgorithms.automaton.bytes.NFA;
-import net.amygdalum.patternsearchalgorithms.automaton.bytes.NFABuilder;
 import net.amygdalum.patternsearchalgorithms.pattern.bytes.MatcherFactory;
 import net.amygdalum.patternsearchalgorithms.pattern.bytes.SearchMatcherFactory;
 import net.amygdalum.patternsearchalgorithms.pattern.bytes.SimpleMatcherFactory;
@@ -53,28 +51,27 @@ class BytePattern extends Pattern {
 	}
 
 	static Pattern compile(String pattern, CharsetOption charset, RegexOption[] regexOptions, OptimizationTarget optimizations, SearchMode mode) {
-		NFA nfa = buildNFAFrom(pattern, charset, regexOptions);
+		RegexNode node = buildNFAFrom(pattern, regexOptions);
 
-		MatcherFactory factory = buildFactory(nfa, optimizations, mode);
+		MatcherFactory factory = buildFactory(node, charset, optimizations, mode);
 
 		return new BytePattern(pattern, factory, charset.getCharset());
 	}
 
-	private static MatcherFactory buildFactory(NFA nfa, OptimizationTarget optimizationTarget, SearchMode mode) {
+	private static MatcherFactory buildFactory(RegexNode node, CharsetOption charset, OptimizationTarget optimizationTarget, SearchMode mode) {
 		switch (optimizationTarget) {
 		case SEARCH:
-			return SearchMatcherFactory.compile(nfa, mode);
+			return SearchMatcherFactory.compile(node, charset.getCharset(), mode);
 		case MATCH:
 		default:
-			return SimpleMatcherFactory.compile(nfa, mode);
+			return SimpleMatcherFactory.compile(node, charset.getCharset(),  mode);
 		}
 	}
 
-	public static NFA buildNFAFrom(String pattern, CharsetOption charset, RegexOption[] regexOptions) {
+	public static RegexNode buildNFAFrom(String pattern, RegexOption[] regexOptions) {
 		RegexParserOption[] parserOptions = RegexOption.toRegexParserOptions(regexOptions);
 		RegexParser parser = new RegexParser(pattern, parserOptions);
-		RegexNode node = parser.parse();
-		return new NFABuilder(charset.getCharset()).build(node);
+		return parser.parse();
 	}
 
 }

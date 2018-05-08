@@ -2,22 +2,20 @@ package net.amygdalum.patternsearchalgorithms.automaton.chars;
 
 import static java.lang.Character.MAX_VALUE;
 import static java.lang.Character.MIN_VALUE;
-import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
-import net.amygdalum.util.bits.BitSet;
 import net.amygdalum.util.builders.ArrayLists;
 import net.amygdalum.util.text.CharRange;
 import net.amygdalum.util.worklist.WorkSet;
@@ -25,10 +23,8 @@ import net.amygdalum.util.worklist.WorkSet;
 public class NFA implements Cloneable {
 
 	private State start;
-	private State error;
 	private List<CharRange> charRanges;
 	private State[] states;
-	private List<Transition>[] reachingTransitions;
 
 	public NFA(State start) {
 		init(start);
@@ -37,18 +33,13 @@ public class NFA implements Cloneable {
 	private void init(State start) {
 		this.start = start;
 		this.charRanges = computeEquivalentCharRanges(start);
-		this.states = enumerateStates(start);
-		this.reachingTransitions = reachingTransitions(states);
-		clean();
+		this.states = clean(start, null);
 	}
 
 	private void init(State start, State error) {
 		this.start = start;
-		this.error = error;
 		this.charRanges = computeEquivalentCharRanges(start);
-		this.states = enumerateStates(start);
-		this.reachingTransitions = reachingTransitions(states);
-		clean();
+		this.states = clean(start, error);
 	}
 
 	public State getStart() {
@@ -63,55 +54,61 @@ public class NFA implements Cloneable {
 		return charRanges;
 	}
 
-	public boolean isLive(State state) {
-		return state == start || !reachingTransitions[state.getId()].isEmpty();
-	}
-
-	private void clean() {
-		WorkSet<State> live = new WorkSet<>();
+	private static State[] clean(State start, State error) {
+		WorkSet<State> todo = new WorkSet<>();
+		todo.add(start);
 		Set<State> dead = new HashSet<>();
-		for (State state : states) {
+		WorkSet<State> live = new WorkSet<>();
+		while (!todo.isEmpty()) {
+			State state = todo.remove();
 			if (state.isAccepting()) {
 				live.add(state);
 			} else {
 				dead.add(state);
 			}
+			for (Transition transition : state.out()) {
+				todo.add(transition.getTarget());
+			}
 		}
 		while (!live.isEmpty()) {
 			State current = live.remove();
-			List<Transition> liveTransitions = reachingTransitions[current.getId()];
-			for (Transition liveTransition : liveTransitions) {
+			for (Transition liveTransition : current.in()) {
 				State nextLive = liveTransition.getOrigin();
 				live.add(nextLive);
 				dead.remove(nextLive);
 			}
 		}
-		
+
+		dead.remove(start);
+		live.remove(start);
+		live.getDone().add(start);
 		if (error != null) {
 			dead.remove(error);
-		}
-		
-		List<Transition> empty = emptyList();
-		for (State current : dead) {
-			current.updateTransitions(empty);
-			List<Transition> deadTransitions = reachingTransitions[current.getId()];
-			for (Transition deadTransition : deadTransitions) {
-				State origin = deadTransition.getOrigin();
-				origin.removeTransition(deadTransition);
-			}
-			reachingTransitions[current.getId()] = empty;
+			live.remove(error);
+			live.getDone().add(error);
 		}
 
+		for (State current : dead) {
+			current.disconnect();
+		}
+
+		int i = 0;
+		Set<State> foundLive = live.getDone();
+		for (State current : foundLive) {
+			current.setId(i);
+			i++;
+		}
+		return foundLive.toArray(new State[0]);
 	}
 
 	public void prune() {
-		eliminateEpsilons(true);
-		mergeAdjacentTransitions();
+		eliminateTrivialEpsilons();
+		mergeTransitions();
 	}
 
 	public void determinize() {
-		eliminateEpsilons(false);
-		mergeAdjacentTransitions();
+		eliminateAllEpsilons();
+		mergeTransitions();
 		determinizeStates();
 		totalizeStates();
 		minimizeStates();
@@ -119,144 +116,144 @@ public class NFA implements Cloneable {
 
 	private void totalizeStates() {
 		State error = new State();
-		for (State state : states) {
-			if (isLive(state)) {
-				for (CharRange range : charRanges) {
-					if (state.nexts(range.from).isEmpty()) {
-						state.addTransition(new CharsTransition(state, range.from, range.to, error));
+		Queue<State> todo = new WorkSet<>();
+		todo.add(error);
+		todo.add(start);
+		while (!todo.isEmpty()) {
+			State current = todo.remove();
+			List<CharRange> missingRanges = new LinkedList<>(charRanges);
+			for (Transition transition : current.out()) {
+				todo.add(transition.getTarget());
+				if (transition instanceof OrdinaryTransition) {
+					char ch = ((OrdinaryTransition) transition).getFrom();
+					Iterator<CharRange> iterator = missingRanges.iterator();
+					while (iterator.hasNext()) {
+						CharRange check = iterator.next();
+						if (check.contains(ch)) {
+							iterator.remove();
+							break;
+						}
 					}
 				}
+			}
+			for (CharRange range : missingRanges) {
+				new CharsTransition(current, range.from, range.to, error).connect();
 			}
 		}
 		init(start, error);
 	}
 
 	private void minimizeStates() {
+		List<Set<State>> partitions = new LinkedList<>();
+		Queue<Set<State>> todo = new LinkedList<>();
 
-		//P := {F, Q \ F};
-		List<BitSet> partitions = new LinkedList<>();
-		BitSet accepting = BitSet.empty(states.length);
-		BitSet notaccepting = BitSet.empty(states.length);
-		for (int i = 0; i < states.length; i++) {
-			if (states[i].isAccepting()) {
-				accepting.set(i);
-			} else {
-				notaccepting.set(i);
-			}
-		}
-		if (!accepting.isEmpty()) {
-			partitions.add(accepting);
-		}
-		if (!notaccepting.isEmpty()) {
-			partitions.add(notaccepting);
+		SplitPartition initialPartition = initialPartition();
+
+		if (initialPartition.min.isEmpty()) {
+			partitions.add(initialPartition.max);
+		} else {
+			partitions.add(initialPartition.max);
+			partitions.add(initialPartition.min);
+			todo.add(initialPartition.min);
 		}
 
-		Queue<BitSet> todo = new LinkedList<>();
-		todo.add(accepting);
-		// W := {F};
-
-		// while (W is not empty) do
 		while (!todo.isEmpty()) {
-			// choose and remove a set A from W
-			BitSet current = todo.remove();
-			// for each c in Σ do
-			for (CharRange range : charRanges) {
-				char representative = range.from;
-				// let X be the set of states for which a transition on c leads to a state in A
-				BitSet reachingStates = reachingStates(current, representative);
-				// for each set Y in P for which X ∩ Y is nonempty and Y \ X is nonempty do
-				if (reachingStates.isEmpty()) {
-					continue;
-				}
-				for (int i = 0; i < partitions.size(); i++) {
-					BitSet partition = partitions.get(i);
-					BitSet intersection = partition.and(reachingStates);
-					BitSet remainder = partition.andNot(reachingStates);
-					if (intersection.isEmpty() || remainder.isEmpty()) {
+			Set<State> current = todo.remove();
+			for (CharRange charRange : charRanges) {
+				Set<State> origins = origins(current, charRange);
+				ListIterator<Set<State>> partitionIterator = partitions.listIterator();
+				while (partitionIterator.hasNext()) {
+					Set<State> partition = partitionIterator.next();
+					SplitPartition splitPartition = split(partition, origins);
+					if (splitPartition.min.isEmpty()) {
 						continue;
 					}
-					List<BitSet> newpart = asList(intersection, remainder);
-					// replace Y in P by the two sets X ∩ Y and Y \ X
-					partitions.remove(i);
-					partitions.addAll(i, newpart);
-					i++;
-					// if Y is in W
+					partitionIterator.set(splitPartition.max);
+					partitionIterator.add(splitPartition.min);
 					if (todo.contains(partition)) {
-						// replace Y in W by the same two sets
 						todo.remove(partition);
-						todo.addAll(newpart);
+						todo.add(splitPartition.max);
+						todo.add(splitPartition.min);
 					} else {
-						// if |X ∩ Y| <= |Y \ X|
-						if (intersection.bitCount() <= remainder.bitCount()) {
-							// add X ∩ Y to W
-							todo.add(intersection);
-						} else {
-							// add Y \ X to W
-							todo.add(remainder);
-						}
+						todo.add(splitPartition.min);
 					}
 				}
 			}
 		}
 
-		State newstart = mergeStates(partitions);
-		init(newstart);
+		digest(partitions);
 	}
 
-	private State mergeStates(List<BitSet> partitions) {
+	private void digest(List<Set<State>> partitions) {
 		Map<State, State> mapping = new IdentityHashMap<>();
-		for (BitSet bits : partitions) {
-			int pos = bits.nextSetBit(0);
-			State representative = states[pos];
-			while (pos > -1) {
-				State state = states[pos];
-				if (state.isAccepting()) {
-					representative.setAccepting();
+		State start = null;
+		for (Set<State> partition : partitions) {
+			State state = new State();
+			for (State partstate : partition) {
+				mapping.put(partstate, state);
+				if (partstate.isAccepting()) {
+					state.setAccepting();
 				}
-				if (!state.isSilent()) {
-					representative.setSilent(false);
+				if (!partstate.isSilent()) {
+					state.setSilent(false);
 				}
-				mapping.put(state, representative);
-				pos = bits.nextSetBit(pos + 1);
+				if (partstate == this.start) {
+					start = state;
+				}
 			}
 		}
 
-		State newstart = mapping.get(start);
-		Queue<State> toMap = new WorkSet<>();
-		toMap.add(newstart);
-		while (!toMap.isEmpty()) {
-			State current = toMap.remove();
-			for (Transition transition : current.transitions()) {
+		for (Set<State> partition : partitions) {
+			State representative = partition.iterator().next();
+
+			for (Transition transition : representative.out()) {
+				State origin = transition.getOrigin();
+				State mappedOrigin = mapping.get(origin);
 				State target = transition.getTarget();
 				State mappedTarget = mapping.get(target);
-				if (target != mappedTarget) {
-					target = mappedTarget;
-					transition.withTarget(mappedTarget);
-				}
-				toMap.add(target);
+				transition.asPrototype().withOrigin(mappedOrigin).withTarget(mappedTarget).connect();
 			}
 		}
-		return newstart;
+		this.start = start;
+		this.states = clean(start, null);
 	}
 
-	private BitSet reachingStates(BitSet bits, char event) {
-		BitSet reachingStates = BitSet.empty(states.length);
+	private SplitPartition split(Set<State> partition, Set<State> splitter) {
+		Set<State> intersection = new HashSet<>(partition.size());
+		Set<State> remainder = new HashSet<>(partition.size());
+		for (State state : partition) {
+			if (splitter.contains(state)) {
+				intersection.add(state);
+			} else {
+				remainder.add(state);
+			}
+		}
+		return new SplitPartition(intersection, remainder);
+	}
 
-		int pos = bits.nextSetBit(0);
-		while (pos > -1) {
-			State state = states[pos];
-			List<Transition> reaching = reachingTransitions[state.getId()];
-			if (reaching != null) {
-				for (Transition transition : reaching) {
-					if (transition instanceof OrdinaryTransition && ((OrdinaryTransition) transition).accepts(event)) {
-						State origin = transition.getOrigin();
-						reachingStates.set(origin.getId());
-					}
+	private Set<State> origins(Set<State> states, CharRange charRange) {
+		Set<State> in = new HashSet<>();
+		for (State state : states) {
+			for (Transition transition : state.in()) {
+				if (transition instanceof OrdinaryTransition && ((OrdinaryTransition) transition).accepts(charRange.from)) {
+					in.add(transition.getOrigin());
 				}
 			}
-			pos = bits.nextSetBit(pos + 1);
 		}
-		return reachingStates;
+		return in;
+	}
+
+	private SplitPartition initialPartition() {
+		Set<State> accept = new HashSet<>(states.length);
+		Set<State> nonaccept = new HashSet<>(states.length);
+		for (State state : states) {
+			if (state.isAccepting()) {
+				accept.add(state);
+			} else {
+				nonaccept.add(state);
+			}
+		}
+		return new SplitPartition(accept, nonaccept);
 	}
 
 	private void determinizeStates() {
@@ -279,8 +276,9 @@ public class NFA implements Cloneable {
 				char to = range.to;
 				Set<State> nextset = new HashSet<>();
 				for (State state : current) {
-					for (OrdinaryTransition transition : state.nexts(from)) {
-						nextset.add(transition.getTarget());
+					for (Transition transition : state.out()) {
+						if (transition instanceof OrdinaryTransition && ((OrdinaryTransition) transition).accepts(from))
+							nextset.add(transition.getTarget());
 					}
 				}
 				State target = dStates.get(nextset);
@@ -290,9 +288,9 @@ public class NFA implements Cloneable {
 					dStates.put(nextset, target);
 				}
 				if (from == to) {
-					dState.addTransition(new CharTransition(dState, from, target));
+					new CharTransition(dState, from, target).connect();
 				} else {
-					dState.addTransition(new CharsTransition(dState, from, to, target));
+					new CharsTransition(dState, from, to, target).connect();
 				}
 			}
 		}
@@ -310,19 +308,6 @@ public class NFA implements Cloneable {
 		dState.setSilent(silent);
 	}
 
-	private static State[] enumerateStates(State start) {
-		List<State> states = new ArrayList<>();
-		WorkSet<State> todo = new WorkSet<>();
-		todo.add(start);
-		while (!todo.isEmpty()) {
-			State current = todo.remove();
-			current.setId(states.size());
-			states.add(current);
-			todo.addAll(current.reachableStates());
-		}
-		return states.toArray(new State[0]);
-	}
-
 	private static List<CharRange> computeEquivalentCharRanges(State start) {
 		CharRangeAccumulator acc = new CharRangeAccumulator();
 
@@ -330,7 +315,7 @@ public class NFA implements Cloneable {
 		todo.add(start);
 		while (!todo.isEmpty()) {
 			State state = todo.remove();
-			for (Transition transition : state.transitions()) {
+			for (Transition transition : state.out()) {
 				if (transition instanceof OrdinaryTransition) {
 					OrdinaryTransition ordinaryTransition = (OrdinaryTransition) transition;
 					acc.split(ordinaryTransition.getFrom(), ordinaryTransition.getTo());
@@ -341,55 +326,46 @@ public class NFA implements Cloneable {
 		return acc.getRanges();
 	}
 
-	@SuppressWarnings("unchecked")
-	private static List<Transition>[] reachingTransitions(State[] states) {
-		List<Transition>[] reaching = new List[states.length];
-		for (int i = 0; i < reaching.length; i++) {
-			reaching[i] = new ArrayList<>();
-		}
-
-		for (State state : states) {
-			for (Transition transition : state.transitions()) {
-				State target = transition.getTarget();
-				reaching[target.getId()].add(transition);
-			}
-		}
-		return reaching;
-	}
-
-	private void mergeAdjacentTransitions() {
+	private void mergeTransitions() {
 		Queue<State> todo = new WorkSet<>();
 		todo.add(start);
 		while (!todo.isEmpty()) {
 			State state = todo.remove();
-			List<Transition> sortedTransitions = new ArrayList<>(state.transitions());
-			Collections.sort(sortedTransitions, new TransitionComparator());
-
-			List<Transition> mergedTransitions = new ArrayList<>(sortedTransitions.size());
+			SortedSet<Transition> transitions = new TreeSet<>(new TransitionComparator());
+			transitions.addAll(state.out());
 
 			Transition last = null;
-
-			for (Transition transition : sortedTransitions) {
+			for (Transition transition : transitions) {
 				if (last == null) {
 					last = transition;
 				} else {
-					Transition join = tryJoin(last, transition);
-					if (join != null) {
-						last = join;
-					} else {
-						mergedTransitions.add(last);
+					Transition joined = tryJoin(last, transition);
+					if (joined == null) {
+						if (!transitions.contains(last)) {
+							last.connect();
+						}
 						last = transition;
+					} else if (joined == last) {
+						transition.remove();
+					} else if (joined == transition) {
+						if (transitions.contains(last)) {
+							last.remove();
+						}
+						last = joined;
+					} else {
+						if (transitions.contains(last)) {
+							last.remove();
+						}
+						transition.remove();
+						last = joined;
 					}
 				}
 			}
-			if (last != null) {
-				mergedTransitions.add(last);
-			}
-			if (mergedTransitions.size() < sortedTransitions.size()) {
-				state.updateTransitions(mergedTransitions);
+			if (last != null && !transitions.contains(last)) {
+				last.connect();
 			}
 		}
-		clean();
+		clean(start, null);
 	}
 
 	private Transition tryJoin(Transition t1, Transition t2) {
@@ -406,18 +382,20 @@ public class NFA implements Cloneable {
 			OrdinaryTransition ot1 = (OrdinaryTransition) t1;
 			OrdinaryTransition ot2 = (OrdinaryTransition) t2;
 
-			int from1 = ot1.getFrom() & 0xff;
-			int to1 = ot1.getTo() & 0xff;
-			int from2 = ot2.getFrom() & 0xff;
-			int to2 = ot2.getTo() & 0xff;
+			int from1 = ot1.getFrom() & 0xffff;
+			int to1 = ot1.getTo() & 0xffff;
+			int from2 = ot2.getFrom() & 0xffff;
+			int to2 = ot2.getTo() & 0xffff;
 
 			if (from2 >= from1 && from2 <= to1 + 1 || from1 >= from2 && from1 <= to2 + 1) {
 
 				char from = (char) Math.min(from1, from2);
 				char to = (char) Math.max(to1, to2);
 
-				if (from == to) {
-					return new CharTransition(origin, from, target);
+				if (from1 == from && to1 == to) {
+					return ot1;
+				} else if (from2 == from && to2 == to) {
+					return ot2;
 				} else {
 					return new CharsTransition(origin, from, to, target);
 				}
@@ -426,19 +404,18 @@ public class NFA implements Cloneable {
 		return null;
 	}
 
-	private void eliminateEpsilons(boolean preserveActions) {
+	private void eliminateTrivialEpsilons() {
 		Queue<State> todo = new WorkSet<>();
 		todo.add(start);
 		while (!todo.isEmpty()) {
 			State state = todo.remove();
-			for (State target : state.reachableStates()) {
-				todo.add(target);
+			for (Transition transition : state.out()) {
+				todo.add(transition.getTarget());
 			}
-			List<EpsilonTransition> epsilons = state.epsilons();
-			for (EpsilonTransition epsilon : transitiveEpsilons(epsilons, preserveActions)) {
+			for (EpsilonTransition epsilon : transitiveEpsilons(state)) {
 				State origin = epsilon.getOrigin();
 				if (origin == state) {
-					state.removeTransition(epsilon);
+					epsilon.remove();
 				}
 				State target = epsilon.getTarget();
 				if (target.isAccepting()) {
@@ -447,21 +424,16 @@ public class NFA implements Cloneable {
 				if (!target.isSilent()) {
 					state.setSilent(false);
 				}
-				for (OrdinaryTransition t : target.ordinaries()) {
-					Transition inlined = t.asPrototype()
-						.withOrigin(state)
-						.withTarget(t.getTarget());
-					state.addTransition(inlined);
+				for (Transition transition : target.out()) {
+					if (transition instanceof OrdinaryTransition) {
+						transition.asPrototype().withOrigin(state).withTarget(transition.getTarget()).connect();
+					}
 				}
-				if (preserveActions) {
-					for (EpsilonTransition t : target.epsilons()) {
-						Action action = t.getAction();
+				for (Transition transition : target.out()) {
+					if (transition instanceof EpsilonTransition) {
+						Action action = transition.getAction();
 						if (action != null) {
-							Transition inlined = t.asPrototype()
-								.withOrigin(state)
-								.withTarget(t.getTarget())
-								.withAction(action);
-							state.addTransition(inlined);
+							transition.asPrototype().withOrigin(state).withTarget(transition.getTarget()).withAction(action).connect();
 						}
 					}
 				}
@@ -470,21 +442,156 @@ public class NFA implements Cloneable {
 		init(start);
 	}
 
-	private Set<EpsilonTransition> transitiveEpsilons(Collection<EpsilonTransition> epsilons, boolean preserveActions) {
+	private Set<EpsilonTransition> transitiveEpsilons(State state) {
+
 		WorkSet<EpsilonTransition> todo = new WorkSet<>();
-		todo.addAll(epsilons);
+		for (Transition transition : state.out()) {
+			if (transition instanceof EpsilonTransition) {
+				todo.add((EpsilonTransition) transition);
+			}
+		}
 		while (!todo.isEmpty()) {
 			EpsilonTransition current = todo.remove();
-			if (preserveActions && current.getAction() != null) {
+			if (current.getAction() != null) {
 				todo.remove(current);
 				continue;
 			}
 			State target = current.getTarget();
-			for (EpsilonTransition epsilon : target.epsilons()) {
-				todo.add(epsilon);
+			for (Transition transition : target.out()) {
+				if (transition instanceof EpsilonTransition) {
+					todo.add((EpsilonTransition) transition);
+				}
 			}
 		}
 		return todo.getDone();
+	}
+
+	private void eliminateAllEpsilons() {
+		Queue<EpsilonTransition> epsilons = new LinkedList<>();
+		Queue<State> todo = new WorkSet<>();
+		todo.add(start);
+		while (!todo.isEmpty()) {
+			State state = todo.remove();
+			for (Transition transition : state.out()) {
+				todo.add(transition.getTarget());
+				if (transition instanceof EpsilonTransition) {
+					epsilons.add((EpsilonTransition) transition);
+				}
+			}
+		}
+
+		WorkSet<EpsilonTransition> propagateEpsilons = new WorkSet<>();
+		propagateEpsilons.addAll(epsilons);
+		while (!propagateEpsilons.isEmpty()) {
+			EpsilonTransition epsilon = propagateEpsilons.remove();
+			Set<EpsilonTransition> done = propagateStates(epsilon);
+			propagateEpsilons.removeAll(done);
+			propagateEpsilons.getDone().addAll(done);
+		}
+
+		while (!epsilons.isEmpty()) {
+			EpsilonTransition epsilon = epsilons.remove();
+			State origin = epsilon.getOrigin();
+			State target = epsilon.getTarget();
+			int in = origin.in().size();
+			int out = target.out().size();
+			if (in == 0) {
+				eliminateForward(epsilon);
+			} else if (out == 0) {
+				eliminateBackward(epsilon);
+			} else if (in >= out) {
+				eliminateForward(epsilon);
+			} else {
+				eliminateBackward(epsilon);
+			}
+		}
+
+		init(start);
+	}
+
+	private Set<EpsilonTransition> propagateStates(EpsilonTransition epsilon) {
+		boolean accepting = false;
+		boolean silent = true;
+
+		Set<EpsilonTransition> propagated = new HashSet<>();
+		WorkSet<State> eclosure = new WorkSet<>();
+		eclosure.add(epsilon.getOrigin());
+		eclosure.add(epsilon.getTarget());
+		while (!eclosure.isEmpty()) {
+			State next = eclosure.remove();
+			accepting |= next.isAccepting();
+			silent &= next.isSilent();
+
+			for (Transition transition : next.out()) {
+				if (transition instanceof EpsilonTransition) {
+					propagated.add((EpsilonTransition) transition);
+					eclosure.add(transition.getTarget());
+				}
+			}
+			for (Transition transition : next.in()) {
+				if (transition instanceof EpsilonTransition) {
+					propagated.add((EpsilonTransition) transition);
+					eclosure.add(transition.getOrigin());
+				}
+			}
+		}
+
+		for (State state : eclosure.getDone()) {
+			state.setAccepting(accepting);
+			state.setSilent(silent);
+		}
+
+		return propagated;
+	}
+
+	private void eliminateForward(EpsilonTransition epsilon) {
+		State origin = epsilon.getOrigin();
+		WorkSet<State> targets = new WorkSet<>();
+		targets.add(epsilon.getTarget());
+		while (!targets.isEmpty()) {
+			State next = targets.remove();
+			for (Transition transition : next.out()) {
+				if (transition instanceof OrdinaryTransition) {
+					transition.asPrototype().withOrigin(origin).withTarget(transition.getTarget()).connect();
+				} else if (transition instanceof EpsilonTransition) {
+					targets.add(transition.getTarget());
+				}
+			}
+		}
+		epsilon.remove();
+		if (origin.out().isEmpty() && !origin.isAccepting()) {
+			origin.disconnect();
+		}
+		for (State target : targets.getDone()) {
+			if (target.in().isEmpty() && target != start) {
+				target.disconnect();
+			}
+		}
+	}
+
+	private void eliminateBackward(EpsilonTransition epsilon) {
+		State target = epsilon.getTarget();
+		WorkSet<State> origins = new WorkSet<>();
+		origins.add(epsilon.getOrigin());
+		while (!origins.isEmpty()) {
+			State next = origins.remove();
+			for (Transition transition : next.in()) {
+				if (transition instanceof OrdinaryTransition) {
+					transition.asPrototype().withOrigin(transition.getOrigin()).withTarget(target).connect();
+				} else if (transition instanceof EpsilonTransition) {
+					origins.add(transition.getOrigin());
+				}
+			}
+		}
+		epsilon.remove();
+		if (target.in().isEmpty() && target != start) {
+			target.disconnect();
+		}
+		for (State origin : origins.getDone()) {
+			if (origin.out().isEmpty()) {
+				origin.disconnect();
+			}
+		}
 	}
 
 	public NFAComponent asComponent() {
@@ -492,7 +599,7 @@ public class NFA implements Cloneable {
 		for (State state : states) {
 			if (state.isAccepting()) {
 				state.setAccepting(false);
-				state.addTransition(new EpsilonTransition(state, end));
+				new EpsilonTransition(state, end).connect();
 			}
 		}
 		return new NFAComponent(start, end);
@@ -539,6 +646,17 @@ public class NFA implements Cloneable {
 			ranges.remove(i);
 			ranges.addAll(i, replacement);
 			return i + replacement.size() - 1;
+		}
+
+	}
+
+	private static class SplitPartition {
+		public Set<State> max;
+		public Set<State> min;
+
+		public SplitPartition(Set<State> intersection, Set<State> remainder) {
+			this.max = intersection.size() > remainder.size() ? intersection : remainder;
+			this.min = intersection.size() <= remainder.size() ? intersection : remainder;
 		}
 
 	}

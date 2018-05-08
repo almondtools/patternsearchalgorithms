@@ -1,26 +1,26 @@
 package net.amygdalum.patternsearchalgorithms.automaton.chars;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 
 public class State implements Cloneable, Comparable<State> {
 
 	private int id;
-	private List<Transition> transitions;
+	private List<Transition> out;
+	private List<Transition> in;
 	private boolean accept;
 	private boolean silent;
 
 	public State() {
 		id = System.identityHashCode(this);
-		transitions = new ArrayList<>();
+		out = new ArrayList<>();
+		in = new ArrayList<>();
 	}
 
 	public State(int transitionCount) {
 		id = System.identityHashCode(this);
-		transitions = new ArrayList<>(transitionCount);
+		out = new ArrayList<>(transitionCount);
+		in = new ArrayList<>();
 	}
 
 	public void setId(int id) {
@@ -56,62 +56,44 @@ public class State implements Cloneable, Comparable<State> {
 	}
 
 	public State asPrototype() {
-		return new State(transitions.size());
+		return new State(out.size());
 	}
 
-	public void addTransition(Transition transition) {
-		transitions.add(transition);
+	void addOut(Transition transition) {
+		out.add(transition);
 	}
 
-	public void removeTransition(Transition transition) {
-		transitions.remove(transition);
+	void removeOut(Transition transition) {
+		out.remove(transition);
 	}
 
-	public void updateTransitions(Collection<Transition> transitions) {
-		this.transitions.clear();
-		this.transitions.addAll(transitions);
+	public List<Transition> out() {
+		return out;
 	}
 
-	public List<Transition> transitions() {
-		return transitions;
+	void addIn(Transition transition) {
+		in.add(transition);
 	}
 
-	public List<OrdinaryTransition> ordinaries() {
-		List<OrdinaryTransition> next = new ArrayList<>();
-		for (Transition transition : transitions) {
-			if (transition instanceof OrdinaryTransition) {
-				next.add((OrdinaryTransition) transition);
-			}
+	void removeIn(Transition transition) {
+		in.remove(transition);
+	}
+
+	public List<Transition> in() {
+		return in;
+	}
+
+	public void disconnect() {
+		List<Transition> inOld = in;
+		in = new ArrayList<>();
+		for (Transition t : inOld) {
+			t.remove();
 		}
-		return next;
-	}
-
-	public List<OrdinaryTransition> nexts(char c) {
-		List<OrdinaryTransition> next = new ArrayList<>();
-		for (Transition transition : transitions) {
-			if (transition instanceof OrdinaryTransition && ((OrdinaryTransition) transition).accepts(c)) {
-				next.add((OrdinaryTransition) transition);
-			}
+		List<Transition> outOld = out;
+		out = new ArrayList<>();
+		for (Transition t : outOld) {
+			t.remove();
 		}
-		return next;
-	}
-
-	public List<EpsilonTransition> epsilons() {
-		List<EpsilonTransition> epsilons = new ArrayList<>();
-		for (Transition transition : transitions) {
-			if (transition instanceof EpsilonTransition) {
-				epsilons.add((EpsilonTransition) transition);
-			}
-		}
-		return epsilons;
-	}
-
-	public Set<State> reachableStates() {
-		Set<State> states = new LinkedHashSet<>();
-		for (Transition transition : transitions) {
-			states.add(transition.getTarget());
-		}
-		return states;
 	}
 
 	@Override
@@ -123,7 +105,7 @@ public class State implements Cloneable, Comparable<State> {
 	public String toString() {
 		StringBuilder buffer = new StringBuilder();
 		buffer.append(getId()).append(" {\n");
-		for (Transition transition : transitions) {
+		for (Transition transition : out) {
 			buffer.append(transition.toString()).append('\n');
 		}
 		buffer.append('}');

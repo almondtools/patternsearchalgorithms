@@ -6,6 +6,7 @@ import net.amygdalum.patternsearchalgorithms.automaton.chars.NFABuilder;
 import net.amygdalum.patternsearchalgorithms.automaton.chars.NFAComponent;
 import net.amygdalum.patternsearchalgorithms.pattern.Matcher;
 import net.amygdalum.patternsearchalgorithms.pattern.SearchMode;
+import net.amygdalum.regexparser.RegexNode;
 import net.amygdalum.util.io.CharProvider;
 
 public class SimpleMatcherFactory implements MatcherFactory {
@@ -20,18 +21,19 @@ public class SimpleMatcherFactory implements MatcherFactory {
 		this.grouper = grouper;
 	}
 
-	public static SimpleMatcherFactory compile(NFA nfa, SearchMode mode) {
-		return new SimpleMatcherFactory(mode, matcherFrom(nfa), grouperFrom(nfa));
+	public static SimpleMatcherFactory compile(RegexNode node, SearchMode mode) {
+		return new SimpleMatcherFactory(mode, matcherFrom(node), grouperFrom(node));
 	}
 
-	public static DFA matcherFrom(NFA nfa) {
-		return DFA.from(nfa);
+	public static DFA matcherFrom(RegexNode node) {
+		NFABuilder builder = new NFABuilder();
+		return DFA.from(builder.build(node));
 	}
 
-	private static NFA grouperFrom(NFA nfa) {
+	private static NFA grouperFrom(RegexNode node) {
 		NFABuilder builder = new NFABuilder();
 
-		NFAComponent base = builder.matchGroup(nfa.clone().asComponent(), 0);
+		NFAComponent base = builder.matchGroup(node.accept(builder), 0);
 
 		NFA finder = base.toFullNFA();
 		finder.prune();

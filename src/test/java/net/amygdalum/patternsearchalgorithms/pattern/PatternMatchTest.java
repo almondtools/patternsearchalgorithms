@@ -236,69 +236,6 @@ public class PatternMatchTest {
 	}
 
 	@Test
-	public void testMatchPattern1() throws Exception {
-		Pattern pattern = patterns.compile("ab*c");
-		Matcher matcher = pattern.matcher("ac");
-		assertTrue(matcher.matches());
-		assertThat(matcher.group(), equalTo("ac"));
-		matcher = pattern.matcher("abc");
-		assertTrue(matcher.matches());
-		assertThat(matcher.group(), equalTo("abc"));
-		matcher = pattern.matcher("abbc");
-		assertTrue(matcher.matches());
-		assertThat(matcher.group(), equalTo("abbc"));
-		matcher = pattern.matcher("abbbc");
-		assertTrue(matcher.matches());
-		assertThat(matcher.group(), equalTo("abbbc"));
-		matcher = pattern.matcher("c");
-		assertFalse(matcher.matches());
-		assertThat(matcher.group(), nullValue());
-	}
-
-	@Test
-	public void testMatchPattern2() throws Exception {
-		Pattern pattern = patterns.compile("(([^:]+)://)?([^:/]+)(:([0-9]+))?(/.*)");
-		Matcher matcher = pattern.matcher("http://www.linux.com/");
-		assertTrue(matcher.matches());
-		assertThat(matcher.group(), equalTo("http://www.linux.com/"));
-		matcher = pattern.matcher("http://www.thelinuxshow.com/main.php3");
-		assertTrue(matcher.matches());
-		assertThat(matcher.group(), equalTo("http://www.thelinuxshow.com/main.php3"));
-	}
-
-	@Test
-	public void testMatchPattern2_1() throws Exception {
-		Pattern pattern = patterns.compile("(([^:]+)://)?");
-		assertTrue(pattern.matcher("http://").matches());
-		assertTrue(pattern.matcher("ftp://").matches());
-		assertTrue(pattern.matcher("").matches());
-	}
-
-	@Test
-	public void testMatchPattern2_2() throws Exception {
-		Pattern pattern = patterns.compile("([^:/]+)");
-		assertTrue(pattern.matcher("www.linux.com").matches());
-		assertTrue(pattern.matcher("www.thelinuxshow.com").matches());
-	}
-
-	@Test
-	public void testMatchSubmatchPattern8() throws Exception {
-		Pattern pattern = patterns.compile("([a-e]|(abc))+", LONGEST_NON_OVERLAPPING);
-		Matcher matcher = pattern.matcher("cabcdecabc");
-		boolean success = matcher.matches();
-		assertTrue(success);
-		assertThat(matcher.start(), equalTo(0l));
-		assertThat(matcher.end(), equalTo(10l));
-		assertThat(matcher.group(), equalTo("cabcdecabc"));
-		assertThat(matcher.start(1), equalTo(7l));
-		assertThat(matcher.end(1), equalTo(10l));
-		assertThat(matcher.group(1), equalTo("abc"));
-		assertThat(matcher.start(2), equalTo(7l));
-		assertThat(matcher.end(2), equalTo(10l));
-		assertThat(matcher.group(2), equalTo("abc"));
-	}
-
-	@Test
 	public void testCharClassRange() throws Exception {
 		Pattern pattern = patterns.compile("[a-e]");
 		assertTrue(pattern.matcher("a").matches());
@@ -329,6 +266,8 @@ public class PatternMatchTest {
 		assertFalse(pattern.matcher("a").matches());
 	}
 
+	@Only({ MATCH})
+	@Charsets({"CHARS"})
 	@Test
 	public void testCharClassWithComplement() throws Exception {
 		Pattern pattern = patterns.compile("[^bd]");
@@ -443,6 +382,79 @@ public class PatternMatchTest {
 		assertFalse(pattern.matcher("aaaaaaa").matches());
 		assertFalse(pattern.matcher("aaaaaaaa").matches());
 		assertFalse(pattern.matcher("aaaaaaaaaaaa").matches());
+	}
+
+	@Test
+	public void testMatchPattern1() throws Exception {
+		Pattern pattern = patterns.compile("ab*c");
+		Matcher matcher = pattern.matcher("ac");
+		assertTrue(matcher.matches());
+		assertThat(matcher.group(), equalTo("ac"));
+		matcher = pattern.matcher("abc");
+		assertTrue(matcher.matches());
+		assertThat(matcher.group(), equalTo("abc"));
+		matcher = pattern.matcher("abbc");
+		assertTrue(matcher.matches());
+		assertThat(matcher.group(), equalTo("abbc"));
+		matcher = pattern.matcher("abbbc");
+		assertTrue(matcher.matches());
+		assertThat(matcher.group(), equalTo("abbbc"));
+		matcher = pattern.matcher("c");
+		assertFalse(matcher.matches());
+		assertThat(matcher.group(), nullValue());
+	}
+
+	@Test
+	public void testMatchPattern2() throws Exception {
+		Pattern pattern = patterns.compile("(([^:]+)://)?([^:/]+)(:([0-9]+))?(/.*)");
+		Matcher matcher = pattern.matcher("http://www.linux.com/");
+		assertTrue(matcher.matches());
+		assertThat(matcher.group(), equalTo("http://www.linux.com/"));
+		matcher = pattern.matcher("http://www.thelinuxshow.com/main.php3");
+		assertTrue(matcher.matches());
+		assertThat(matcher.group(), equalTo("http://www.thelinuxshow.com/main.php3"));
+	}
+
+	@Test
+	public void testMatchPattern2_1() throws Exception {
+		Pattern pattern = patterns.compile("(([^:]+)://)?");
+		assertTrue(pattern.matcher("http://").matches());
+		assertTrue(pattern.matcher("ftp://").matches());
+		assertTrue(pattern.matcher("").matches());
+	}
+
+	@Test
+	public void testMatchPattern2_2() throws Exception {
+		Pattern pattern = patterns.compile("([^:/]+)");
+		assertTrue(pattern.matcher("www.linux.com").matches());
+		assertTrue(pattern.matcher("www.thelinuxshow.com").matches());
+	}
+
+	@Test
+	public void testMatchSubmatchPattern3() throws Exception {
+		Pattern pattern = patterns.compile("([a-e]|(abc))+", LONGEST_NON_OVERLAPPING);
+		Matcher matcher = pattern.matcher("cabcdecabc");
+		boolean success = matcher.matches();
+		assertTrue(success);
+		assertThat(matcher.start(), equalTo(0l));
+		assertThat(matcher.end(), equalTo(10l));
+		assertThat(matcher.group(), equalTo("cabcdecabc"));
+		assertThat(matcher.start(1), equalTo(7l));
+		assertThat(matcher.end(1), equalTo(10l));
+		assertThat(matcher.group(1), equalTo("abc"));
+		assertThat(matcher.start(2), equalTo(7l));
+		assertThat(matcher.end(2), equalTo(10l));
+		assertThat(matcher.group(2), equalTo("abc"));
+	}
+
+	@Test
+	public void testMatchPattern4() throws Exception {
+		Pattern pattern = patterns.compile("And God ([A-Za-z]+ |.){0,5}take them away");
+		assertTrue(pattern.matcher("And God take them away").matches());
+		assertTrue(pattern.matcher("And God should take them away").matches());
+		assertTrue(pattern.matcher("And God should not take them away").matches());
+		assertTrue(pattern.matcher("And God .....take them away").matches());
+		assertFalse(pattern.matcher("And God ......take them away").matches());
 	}
 
 	@Test(expected = RuntimeException.class)

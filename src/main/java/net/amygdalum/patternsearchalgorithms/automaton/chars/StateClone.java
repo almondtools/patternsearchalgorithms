@@ -50,7 +50,7 @@ public class StateClone {
 		if (state.isSilent()) {
 			cloned.setSilent();
 		}
-		for (Transition transition : state.transitions()) {
+		for (Transition transition : state.out()) {
 			State target = transition.getTarget();
 			State clonedtarget = states.get(target);
 			if (clonedtarget == null) {
@@ -59,7 +59,7 @@ public class StateClone {
 				next.add(new Pair<>(target, clonedtarget));
 			}
 			Transition clonedtransition = transition.asPrototype().withOrigin(cloned).withTarget(clonedtarget);
-			cloned.addTransition(clonedtransition);
+			clonedtransition.connect();
 		}
 		return next;
 	}

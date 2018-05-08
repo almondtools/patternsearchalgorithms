@@ -2,6 +2,9 @@ package net.amygdalum.patternsearchalgorithms.automaton.bytes;
 
 public interface Transition {
 
+	void connect();
+	void remove();
+	
 	State getTarget();
 	
 	State getOrigin();

@@ -49,13 +49,12 @@ public class NFAExport {
 
 	public void writeAutomaton(Writer writer) throws IOException {
 		for (State state : automaton.states()) {
-			if (!automaton.isLive(state)) {
-				writeState(writer, state);
-				for (EpsilonTransition epsilon : state.epsilons()) {
-					writeTransition(writer, epsilon);
-				}
-				for (OrdinaryTransition ordinary : state.ordinaries()) {
-					writeTransition(writer, ordinary);
+			writeState(writer, state);
+			for (Transition transition : state.out()) {
+				if (transition instanceof EpsilonTransition) {
+					writeTransition(writer, (EpsilonTransition) transition);
+				} else if (transition instanceof OrdinaryTransition) {
+					writeTransition(writer, (OrdinaryTransition) transition);
 				}
 			}
 		}

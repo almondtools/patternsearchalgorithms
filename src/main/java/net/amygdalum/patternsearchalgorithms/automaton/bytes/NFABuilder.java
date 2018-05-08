@@ -73,19 +73,11 @@ public class NFABuilder implements RegexNodeVisitor<NFAComponent> {
 		return new NFAComponent(s, e);
 	}
 
-	private void connect(State s, State e, String value) {
-		connect(s, e, encode(value, charset));
-	}
-
-	private void connect(State s, State e, char value) {
-		connect(s, e, encode(charset, value));
-	}
-
 	private void connect(State s, State e, byte[] bytes) {
 		if (bytes.length == 0) {
 			//do nothing
 		} else if (bytes.length == 1) {
-			s.addTransition(new ByteTransition(s, bytes[0], e));
+			new ByteTransition(s, bytes[0], e).connect();
 		} else {
 			int length = bytes.length;
 
@@ -95,19 +87,13 @@ public class NFABuilder implements RegexNodeVisitor<NFAComponent> {
 			}
 			int last = chain.length - 1;
 
-			s.addTransition(new ByteTransition(s, bytes[0], chain[0]));
+			new ByteTransition(s, bytes[0], chain[0]).connect();
 
 			for (int i = 1; i < length - 1; i++) {
-				chain[i - 1].addTransition(new ByteTransition(chain[i - 1], bytes[i], chain[i]));
+				new ByteTransition(chain[i - 1], bytes[i], chain[i]).connect();
 			}
 
-			chain[last].addTransition(new ByteTransition(chain[last], bytes[bytes.length - 1], e));
-		}
-	}
-
-	private void connect(State s, State e, char from, char to) {
-		for (ByteRange bytes : intervals(charset, from, to)) {
-			connect(s, e, bytes);
+			new ByteTransition(chain[last], bytes[bytes.length - 1], e).connect();
 		}
 	}
 
@@ -117,7 +103,7 @@ public class NFABuilder implements RegexNodeVisitor<NFAComponent> {
 		if (length == 0) {
 			// do nothing
 		} else if (length == 1) {
-			s.addTransition(new BytesTransition(s, bytes.from[0], bytes.to[0], e));
+			new BytesTransition(s, bytes.from[0], bytes.to[0], e).connect();
 		} else {
 			State[] states = new State[] { s };
 			for (int i = 0; i < length - 1; i++) {
@@ -131,49 +117,49 @@ public class NFABuilder implements RegexNodeVisitor<NFAComponent> {
 		if (states.length == 1) {
 			if (from == to) {
 				State[] next = new State[] { new State() };
-				states[0].addTransition(new ByteTransition(states[0], from, next[0]));
+				new ByteTransition(states[0], from, next[0]).connect();
 				return next;
 			} else if (to - from == 1) {
 				State[] next = new State[] { new State(), new State() };
-				states[0].addTransition(new ByteTransition(states[0], from, next[0]));
-				states[0].addTransition(new ByteTransition(states[0], to, next[1]));
+				new ByteTransition(states[0], from, next[0]).connect();
+				new ByteTransition(states[0], to, next[1]).connect();
 				return next;
 			} else {
 				State[] next = new State[] { new State(), new State(), new State() };
-				states[0].addTransition(new ByteTransition(states[0], from, next[0]));
-				states[0].addTransition(new BytesTransition(states[0], after(from), before(to), next[1]));
-				states[0].addTransition(new ByteTransition(states[0], to, next[2]));
+				new ByteTransition(states[0], from, next[0]).connect();
+				new BytesTransition(states[0], after(from), before(to), next[1]).connect();
+				new ByteTransition(states[0], to, next[2]).connect();
 				return next;
 			}
 		} else if (states.length == 2) {
 			if (from == MAXBYTE && to == MINBYTE) {
 				State[] next = new State[] { new State(), new State() };
-				states[0].addTransition(new ByteTransition(states[0], from, next[0]));
-				states[1].addTransition(new ByteTransition(states[1], to, next[1]));
+				new ByteTransition(states[0], from, next[0]).connect();
+				new ByteTransition(states[1], to, next[1]).connect();
 				return next;
 			} else {
 				State[] next = new State[] { new State(), new State(), new State() };
-				states[0].addTransition(new ByteTransition(states[0], from, next[0]));
+				new ByteTransition(states[0], from, next[0]).connect();
 				if (from != MAXBYTE) {
-					states[0].addTransition(new BytesTransition(states[0], after(from), MAXBYTE, next[1]));
+					new BytesTransition(states[0], after(from), MAXBYTE, next[1]).connect();
 				}
 				if (to != MINBYTE) {
-					states[1].addTransition(new BytesTransition(states[1], MINBYTE, before(to), next[1]));
+					new BytesTransition(states[1], MINBYTE, before(to), next[1]).connect();
 				}
-				states[1].addTransition(new ByteTransition(states[1], to, next[2]));
+				new ByteTransition(states[1], to, next[2]).connect();
 				return next;
 			}
 		} else if (states.length == 3) {
 			State[] next = new State[] { new State(), new State(), new State() };
-			states[0].addTransition(new ByteTransition(states[0], from, next[0]));
+			new ByteTransition(states[0], from, next[0]).connect();
 			if (from != MAXBYTE) {
-				states[0].addTransition(new BytesTransition(states[0], after(from), MAXBYTE, next[1]));
+				new BytesTransition(states[0], after(from), MAXBYTE, next[1]).connect();
 			}
-			states[1].addTransition(new BytesTransition(states[1], MINBYTE, MAXBYTE, next[1]));
+			new BytesTransition(states[1], MINBYTE, MAXBYTE, next[1]).connect();
 			if (to != MINBYTE) {
-				states[2].addTransition(new BytesTransition(states[2], MINBYTE, before(to), next[1]));
+				new BytesTransition(states[2], MINBYTE, before(to), next[1]).connect();
 			}
-			states[2].addTransition(new ByteTransition(states[2], to, next[2]));
+			new ByteTransition(states[2], to, next[2]).connect();
 			return next;
 		} else {
 			return new State[0];
@@ -182,39 +168,53 @@ public class NFABuilder implements RegexNodeVisitor<NFAComponent> {
 
 	private void connectState(State[] states, byte from, byte to, State terminator) {
 		if (states.length == 1 && from == to) {
-			states[0].addTransition(new ByteTransition(states[0], from, terminator));
+			new ByteTransition(states[0], from, terminator).connect();
 		} else if (states.length == 2) {
 			if (from == MAXBYTE && to == MINBYTE) {
-				states[0].addTransition(new ByteTransition(states[0], from, terminator));
-				states[1].addTransition(new ByteTransition(states[1], to, terminator));
+				new ByteTransition(states[0], from, terminator).connect();
+				new ByteTransition(states[1], to, terminator).connect();
 			} else {
-				states[0].addTransition(new ByteTransition(states[0], from, terminator));
+				new ByteTransition(states[0], from, terminator).connect();
 				if (from != MAXBYTE) {
-					states[0].addTransition(new BytesTransition(states[0], after(from), MAXBYTE, terminator));
+					new BytesTransition(states[0], after(from), MAXBYTE, terminator).connect();
 				}
 				if (to != MINBYTE) {
-					states[1].addTransition(new BytesTransition(states[1], MINBYTE, before(to), terminator));
+					new BytesTransition(states[1], MINBYTE, before(to), terminator).connect();
 				}
-				states[1].addTransition(new ByteTransition(states[1], to, terminator));
+				new ByteTransition(states[1], to, terminator).connect();
 			}
 		} else if (states.length == 3) {
-			states[0].addTransition(new ByteTransition(states[0], from, terminator));
+			new ByteTransition(states[0], from, terminator).connect();
 			if (from != MAXBYTE) {
-				states[0].addTransition(new BytesTransition(states[0], after(from), MAXBYTE, terminator));
+				new BytesTransition(states[0], after(from), MAXBYTE, terminator).connect();
 			}
-			states[1].addTransition(new BytesTransition(states[1], MINBYTE, MAXBYTE, terminator));
+			new BytesTransition(states[1], MINBYTE, MAXBYTE, terminator).connect();
 			if (to != MINBYTE) {
-				states[2].addTransition(new BytesTransition(states[2], MINBYTE, before(to), terminator));
+				new BytesTransition(states[2], MINBYTE, before(to), terminator).connect();
 			}
-			states[2].addTransition(new ByteTransition(states[2], to, terminator));
+			new ByteTransition(states[2], to, terminator).connect();
+		}
+	}
+
+	private void connect(State s, State e, String value) {
+		connect(s, e, encode(value, charset));
+	}
+
+	private void connect(State s, State e, char value) {
+		connect(s, e, encode(charset, value));
+	}
+
+	private void connect(State s, State e, char from, char to) {
+		for (ByteRange bytes : intervals(charset, from, to)) {
+			connect(s, e, bytes);
 		}
 	}
 
 	public NFAComponent matchGroup(NFAComponent a, int no) {
 		State s = new State();
 		State e = new State();
-		s.addTransition(new EpsilonTransition(s, a.start).withAction(new StartGroup(no)));
-		a.end.addTransition(new EpsilonTransition(a.end, e).withAction(new EndGroup(no)));
+		new EpsilonTransition(s, a.start).withAction(new StartGroup(no)).connect();
+		new EpsilonTransition(a.end, e).withAction(new EndGroup(no)).connect();
 		return new NFAComponent(s, e);
 	}
 
@@ -226,8 +226,8 @@ public class NFABuilder implements RegexNodeVisitor<NFAComponent> {
 		State e = new State();
 		for (NFAComponent a : as) {
 			State n = a.start;
-			s.addTransition(new EpsilonTransition(s, n));
-			a.end.addTransition(new EpsilonTransition(a.end, e));
+			new EpsilonTransition(s, n).connect();
+			new EpsilonTransition(a.end, e).connect();
 		}
 		return new NFAComponent(s, e);
 	}
@@ -245,7 +245,7 @@ public class NFABuilder implements RegexNodeVisitor<NFAComponent> {
 		while (aIterator.hasNext()) {
 			NFAComponent a = aIterator.next();
 			if (last != null) {
-				last.addTransition(new EpsilonTransition(last, a.start));
+				new EpsilonTransition(last, a.start).connect();
 			}
 			last = a.end;
 		}
@@ -265,9 +265,9 @@ public class NFABuilder implements RegexNodeVisitor<NFAComponent> {
 	public NFAComponent matchOptional(NFAComponent a) {
 		State s = new State();
 		State e = new State();
-		s.addTransition(new EpsilonTransition(s, e));
-		s.addTransition(new EpsilonTransition(s, a.start));
-		a.end.addTransition(new EpsilonTransition(a.end, e));
+		new EpsilonTransition(s, e).connect();
+		new EpsilonTransition(s, a.start).connect();
+		new EpsilonTransition(a.end, e).connect();
 		return new NFAComponent(s, e);
 	}
 
@@ -284,16 +284,18 @@ public class NFABuilder implements RegexNodeVisitor<NFAComponent> {
 	public NFAComponent matchStarLoop(NFAComponent a) {
 		State s = new State();
 		State e = new State();
-		s.addTransition(new EpsilonTransition(s, a.start));
-		s.addTransition(new EpsilonTransition(s, e));
-		a.end.addTransition(new EpsilonTransition(a.end, a.start));
-		a.end.addTransition(new EpsilonTransition(a.end, e));
+		new EpsilonTransition(s, a.start).connect();
+		new EpsilonTransition(s, e).connect();
+		new EpsilonTransition(a.end, a.start).connect();
+		new EpsilonTransition(a.end, e).connect();
 		return new NFAComponent(s, e);
 	}
 
 	public NFAComponent matchRangeLoop(NFAComponent a, int start, int end) {
 		if (start == end) {
 			return matchFixedLoop(a, start);
+		} else if (start == 0) {
+			return matchUpToN(a, end);
 		} else {
 			NFAComponent aFixed = matchFixedLoop(a, start);
 			NFAComponent aUpToN = matchUpToN(a.clone(), end - start);
@@ -310,13 +312,13 @@ public class NFABuilder implements RegexNodeVisitor<NFAComponent> {
 	public NFAComponent matchUpToN(NFAComponent a, int count) {
 		State s = new State();
 		State e = new State();
-		s.addTransition(new EpsilonTransition(s, e));
+		new EpsilonTransition(s, e).connect();
 
 		State current = s;
 		for (int i = 0; i < count; i++) {
 			NFAComponent ai = a.clone();
-			current.addTransition(new EpsilonTransition(current, ai.start));
-			ai.end.addTransition(new EpsilonTransition(ai.end, e));
+			new EpsilonTransition(current, ai.start).connect();
+			new EpsilonTransition(ai.end, e).connect();
 			current = ai.end;
 		}
 		return new NFAComponent(s, e);

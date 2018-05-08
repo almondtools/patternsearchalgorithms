@@ -2,7 +2,6 @@ package net.amygdalum.patternsearchalgorithms.automaton.bytes;
 
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.List;
 
 public class DFA {
 
@@ -11,11 +10,11 @@ public class DFA {
 	public int silent; // 0 to silent is silent
 	public int[] transitions;
 
-	public DFA(int start, int[] transitions, int accepting, int silent) {
+	public DFA(int start, int accepting, int silent, int[] transitions) {
 		this.start = start;
-		this.transitions = transitions;
 		this.accepting = accepting;
 		this.silent = silent;
+		this.transitions = transitions;
 	}
 
 	public static DFA from(NFA nfa) {
@@ -33,7 +32,7 @@ public class DFA {
 	public boolean accept(int s) {
 		return s >= accepting;
 	}
-	
+
 	public boolean silent(int s) {
 		return s <= silent;
 	}
@@ -42,27 +41,30 @@ public class DFA {
 
 		private State start;
 		private State[] states;
-		public int accepting; // accepting to infinity is accepting
-		public int silent; // 0 to silent is silent
+		private int[] transitions;
+		private int accepting; // accepting to infinity is accepting
+		private int silent; // 0 to silent is silent
 
 		public DFABuilder(State start, State[] states) {
 			this.start = start;
 			this.states = states;
 		}
 
-		private int[] transitions() {
+		private void computeTransitions() {
 			int[] transitions = new int[states.length * 256];
 			for (int i = 0; i < states.length; i++) {
-				for (int j = 0; j < 256; j++) {
-					List<OrdinaryTransition> next = states[i].nexts((byte) j);
-					if (next.size() == 1) {
-						transitions[i * 256 + j] = next.get(0).getTarget().getId();
-					} else {
-						transitions[i * 256 + j] = -1;
+				nextbyte: for (int j = 0; j < 256; j++) {
+					byte b = (byte) j;
+					for (Transition next : states[i].out()) {
+						if (next instanceof OrdinaryTransition && ((OrdinaryTransition) next).accepts(b)) {
+							transitions[i * 256 + j] = next.getTarget().getId();
+							continue nextbyte;
+						}
 					}
+					transitions[i * 256 + j] = -1;
 				}
 			}
-			return transitions;
+			this.transitions = transitions;
 		}
 
 		private void partitionStates() {
@@ -95,8 +97,9 @@ public class DFA {
 
 		public DFA build() {
 			partitionStates();
+			computeTransitions();
 
-			return new DFA(start.getId(), transitions(), accepting, silent);
+			return new DFA(start.getId(), accepting, silent, transitions);
 		}
 
 	}

@@ -52,4 +52,16 @@ public abstract class AbstractTransition implements Transition {
 			return action.applyTo(groups, pos);
 		}
 	}
+	
+	@Override
+	public void connect() {
+		origin.addOut(this);
+		target.addIn(this);
+	}
+	
+	@Override
+	public void remove() {
+		origin.removeOut(this);
+		target.removeIn(this);
+	}
 }

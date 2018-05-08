@@ -13,10 +13,6 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 
-import net.amygdalum.patternsearchalgorithms.automaton.bytes.NFA;
-import net.amygdalum.patternsearchalgorithms.automaton.bytes.NFABuilder;
-import net.amygdalum.patternsearchalgorithms.automaton.bytes.NFAComponent;
-import net.amygdalum.patternsearchalgorithms.automaton.bytes.NFAMatcher;
 import net.amygdalum.util.io.StringByteProvider;
 
 public class NFAPrunedTest {

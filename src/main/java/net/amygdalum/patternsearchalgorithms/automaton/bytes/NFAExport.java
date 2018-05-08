@@ -5,6 +5,8 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import net.amygdalum.util.text.ByteEncoding;
 
@@ -16,6 +18,14 @@ public class NFAExport {
 	public NFAExport(NFA automaton, String name) {
 		this.automaton = automaton;
 		this.name = name;
+	}
+
+	public void silentTo(Path path) {
+		try {
+			to(Files.newOutputStream(path));
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	public void to(OutputStream out) throws IOException {
@@ -40,13 +50,16 @@ public class NFAExport {
 
 	public void writeAutomaton(Writer writer) throws IOException {
 		for (State state : automaton.states()) {
-			writeState(writer, state);
-			for (EpsilonTransition epsilon : state.epsilons()) {
-				writeTransition(writer, epsilon);
+			if (!automaton.isLive(state)) {
+				writeState(writer, state);
+				for (EpsilonTransition epsilon : state.epsilons()) {
+					writeTransition(writer, epsilon);
+				}
+				for (OrdinaryTransition ordinary : state.ordinaries()) {
+					writeTransition(writer, ordinary);
+				}
 			}
-			for (OrdinaryTransition ordinary : state.ordinaries()) {
-				writeTransition(writer, ordinary);
-			}
+
 		}
 	}
 

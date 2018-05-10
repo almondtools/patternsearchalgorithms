@@ -7,6 +7,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import net.amygdalum.util.io.BitMaskCharClassMapper;
+import net.amygdalum.util.io.CharClassMapper;
+import net.amygdalum.util.io.LowByteCharClassMapper;
+import net.amygdalum.util.io.SmallRangeCharClassMapper;
 import net.amygdalum.util.text.CharRange;
 
 public class DFA {

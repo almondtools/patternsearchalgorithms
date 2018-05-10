@@ -1,8 +1,5 @@
 package net.amygdalum.patternsearchalgorithms.automaton.chars;
 
-import static java.lang.Character.MAX_VALUE;
-import static java.lang.Character.MIN_VALUE;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -17,8 +14,8 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import net.amygdalum.util.builders.ArrayLists;
 import net.amygdalum.util.text.CharRange;
+import net.amygdalum.util.text.CharRangeAccumulator;
 import net.amygdalum.util.worklist.WorkSet;
 
 public class NFA implements Cloneable {
@@ -625,39 +622,6 @@ public class NFA implements Cloneable {
 		} catch (CloneNotSupportedException e) {
 			return null;
 		}
-	}
-
-	private static class CharRangeAccumulator {
-
-		private List<CharRange> ranges;
-
-		public CharRangeAccumulator() {
-			ranges = ArrayLists.of(new CharRange(MIN_VALUE, MAX_VALUE));
-		}
-
-		public List<CharRange> getRanges() {
-			return ranges;
-		}
-
-		public void split(char from, char to) {
-			for (int i = 0; i < ranges.size(); i++) {
-				CharRange currentRange = ranges.get(i);
-				if (currentRange.contains(from) && currentRange.contains(to)) {
-					i = replace(i, currentRange.splitAround(from, to));
-				} else if (currentRange.contains(from)) {
-					i = replace(i, currentRange.splitBefore(from));
-				} else if (currentRange.contains(to)) {
-					i = replace(i, currentRange.splitAfter(to));
-				}
-			}
-		}
-
-		public int replace(int i, List<CharRange> replacement) {
-			ranges.remove(i);
-			ranges.addAll(i, replacement);
-			return i + replacement.size() - 1;
-		}
-
 	}
 
 	private static class SplitPartition {

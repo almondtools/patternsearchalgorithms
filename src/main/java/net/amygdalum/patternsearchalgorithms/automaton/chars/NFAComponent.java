@@ -12,13 +12,6 @@ public class NFAComponent implements Cloneable {
 		this.end = end;
 	}
 
-	public NFA toFullNFA() {
-		if (end != null) {
-			end.setAccepting();
-		}
-		return new NFA(start);
-	}
-
 	public NFAComponent reverse() {
 		WorkSet<Transition> todo = new WorkSet<>();
 		todo.addAll(start.out());
@@ -27,16 +20,16 @@ public class NFAComponent implements Cloneable {
 			State target = current.getTarget();
 			todo.addAll(target.out());
 		}
-		
+
 		for (Transition transition : todo.getDone()) {
 			State origin = transition.getOrigin();
 			State target = transition.getTarget();
 			Action action = transition.getAction();
-			
+
 			transition.remove();
 			transition.asPrototype().withOrigin(target).withTarget(origin).withAction(action).connect();
 		}
-		
+
 		return new NFAComponent(end, start);
 	}
 
@@ -46,7 +39,7 @@ public class NFAComponent implements Cloneable {
 		while (!todo.isEmpty()) {
 			State current = todo.remove();
 			current.setSilent();
-		}		
+		}
 		return this;
 	}
 

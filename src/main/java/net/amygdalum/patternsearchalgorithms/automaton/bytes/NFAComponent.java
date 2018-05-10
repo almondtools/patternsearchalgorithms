@@ -1,7 +1,5 @@
 package net.amygdalum.patternsearchalgorithms.automaton.bytes;
 
-import java.nio.charset.Charset;
-
 import net.amygdalum.util.worklist.WorkSet;
 
 public class NFAComponent implements Cloneable {
@@ -12,13 +10,6 @@ public class NFAComponent implements Cloneable {
 	public NFAComponent(State start, State end) {
 		this.start = start;
 		this.end = end;
-	}
-
-	public NFA toFullNFA(Charset charset) {
-		if (end != null) {
-			end.setAccepting();
-		}
-		return new NFA(start, charset);
 	}
 
 	public NFAComponent reverse() {

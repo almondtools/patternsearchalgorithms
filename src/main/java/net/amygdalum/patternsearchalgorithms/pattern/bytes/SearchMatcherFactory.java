@@ -18,50 +18,53 @@ import net.amygdalum.util.io.ByteProvider;
 public class SearchMatcherFactory implements MatcherFactory {
 
 	private SearchMode mode;
+	private Charset charset;
 	private DFA finder;
 	private DFA backmatcher;
 	private NFA grouper;
 
-	public SearchMatcherFactory(SearchMode mode, DFA finder, DFA backmatcher, NFA grouper) {
+	private SearchMatcherFactory(SearchMode mode, Charset charset) {
 		this.mode = mode;
-		this.finder = finder;
-		this.backmatcher = backmatcher;
-		this.grouper = grouper;
+		this.charset = charset;
 	}
 
 	public static SearchMatcherFactory compile(RegexNode node, Charset charset, SearchMode mode) {
-		return new SearchMatcherFactory(mode, finderFrom(node, charset), backmatcherFrom(node, charset), grouperFrom(node, charset));
+		return new SearchMatcherFactory(mode, charset).compile(node);
 	}
 
-	private static DFA finderFrom(RegexNode node, Charset charset) {
+	private SearchMatcherFactory compile(RegexNode node) {
+		this.finder = finderFrom(node);
+		this.backmatcher = backmatcherFrom(node);
+		this.grouper = grouperFrom(node);
+
+		return this;
+	}
+
+	private DFA finderFrom(RegexNode node) {
 		NFABuilder builder = new NFABuilder(charset);
 
 		NFAComponent base = node.accept(builder);
 		NFAComponent selfloop = builder.matchStarLoop(builder.match(MIN_VALUE, MAX_VALUE)).silent();
 		NFAComponent finder = builder.matchConcatenation(asList(selfloop, base));
 
-		NFA finderNFA = finder.toFullNFA(charset);
-
-		return DFA.from(finderNFA);
+		return DFA.from(builder.build(finder));
 	}
 
-	private static DFA backmatcherFrom(RegexNode node, Charset charset) {
+	private DFA backmatcherFrom(RegexNode node) {
 		NFABuilder builder = new NFABuilder(charset);
 
 		NFAComponent base = node.accept(builder);
 		NFAComponent reverse = base.reverse();
 
-		NFA reverseNFA = reverse.toFullNFA(charset);
-
-		return DFA.from(reverseNFA);
+		return DFA.from(builder.build(reverse));
 	}
 
-	private static NFA grouperFrom(RegexNode node, Charset charset) {
+	private NFA grouperFrom(RegexNode node) {
 		NFABuilder builder = new NFABuilder(charset);
 
 		NFAComponent base = builder.matchGroup(node.accept(builder), 0);
 
-		NFA grouper = base.toFullNFA(charset);
+		NFA grouper = builder.build(base);
 		grouper.prune();
 
 		return grouper;

@@ -15,30 +15,35 @@ public class SimpleMatcherFactory implements MatcherFactory {
 	private DFA matcher;
 	private NFA grouper;
 
-	public SimpleMatcherFactory(SearchMode mode, DFA matcher, NFA grouper) {
+	public SimpleMatcherFactory(SearchMode mode) {
 		this.mode = mode;
-		this.matcher = matcher;
-		this.grouper = grouper;
 	}
 
 	public static SimpleMatcherFactory compile(RegexNode node, SearchMode mode) {
-		return new SimpleMatcherFactory(mode, matcherFrom(node), grouperFrom(node));
+		return new SimpleMatcherFactory(mode).compile(node);
 	}
 
-	public static DFA matcherFrom(RegexNode node) {
+	private SimpleMatcherFactory compile(RegexNode node) {
+		this.matcher = matcherFrom(node);
+		this.grouper = grouperFrom(node);
+
+		return this;
+	}
+
+	private DFA matcherFrom(RegexNode node) {
 		NFABuilder builder = new NFABuilder();
 		return DFA.from(builder.build(node));
 	}
 
-	private static NFA grouperFrom(RegexNode node) {
+	private NFA grouperFrom(RegexNode node) {
 		NFABuilder builder = new NFABuilder();
 
 		NFAComponent base = builder.matchGroup(node.accept(builder), 0);
 
-		NFA finder = base.toFullNFA();
-		finder.prune();
+		NFA grouper = builder.build(base);
+		grouper.prune();
 
-		return finder;
+		return grouper;
 	}
 
 	@Override

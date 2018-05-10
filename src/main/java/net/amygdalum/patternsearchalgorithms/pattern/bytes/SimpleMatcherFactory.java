@@ -14,33 +14,40 @@ import net.amygdalum.util.io.ByteProvider;
 public class SimpleMatcherFactory implements MatcherFactory {
 
 	private SearchMode mode;
+	private Charset charset;
 	private DFA matcher;
 	private NFA grouper;
 
-	public SimpleMatcherFactory(SearchMode mode, DFA matcher, NFA grouper) {
+	public SimpleMatcherFactory(SearchMode mode, Charset charset) {
 		this.mode = mode;
-		this.matcher = matcher;
-		this.grouper = grouper;
+		this.charset = charset;
 	}
 
 	public static SimpleMatcherFactory compile(RegexNode node, Charset charset, SearchMode mode) {
-		return new SimpleMatcherFactory(mode, matcherFrom(node, charset), grouperFrom(node, charset));
+		return new SimpleMatcherFactory(mode, charset).compile(node);
 	}
 
-	public static DFA matcherFrom(RegexNode node, Charset charset) {
+	private SimpleMatcherFactory compile(RegexNode node) {
+		this.matcher = matcherFrom(node);
+		this.grouper = grouperFrom(node);
+		
+		return this;
+	}
+
+	private DFA matcherFrom(RegexNode node) {
 		NFABuilder builder = new NFABuilder(charset);
 		return DFA.from(builder.build(node));
 	}
 
-	private static NFA grouperFrom(RegexNode node, Charset charset) {
+	private NFA grouperFrom(RegexNode node) {
 		NFABuilder builder = new NFABuilder(charset);
 
 		NFAComponent base = builder.matchGroup(node.accept(builder), 0);
 
-		NFA finder = base.toFullNFA(charset);
-		finder.prune();
+		NFA grouper = builder.build(base);
+		grouper.prune();
 
-		return finder;
+		return grouper;
 	}
 
 	@Override

@@ -256,8 +256,8 @@ public class NFATest {
 
 	@Test
 	public void testMatchLoop1OverCompClasses() throws Exception {
-		NFA aOrb = automatonOf(nfaBuilder.matchUnlimitedLoop(nfaBuilder.matchAlternatives(asList(nfaBuilder.match(MIN_VALUE, 'b'), nfaBuilder.match('d', MAX_VALUE))),1));
-		
+		NFA aOrb = automatonOf(nfaBuilder.matchUnlimitedLoop(nfaBuilder.matchAlternatives(asList(nfaBuilder.match(MIN_VALUE, 'b'), nfaBuilder.match('d', MAX_VALUE))), 1));
+
 		assertThat(matchSamples(aOrb, "a"), contains("a"));
 		assertThat(matchSamples(aOrb, "d"), contains("d"));
 		assertThat(matchSamples(aOrb, "dd"), contains("dd"));
@@ -278,7 +278,7 @@ public class NFATest {
 	}
 
 	private static NFA automatonOf(NFAComponent automaton) {
-		return automaton.toFullNFA(UTF_8);
+		return new NFABuilder(UTF_8).build(automaton);
 	}
 
 	public static Set<String> matchSamples(NFA a, String... samples) {

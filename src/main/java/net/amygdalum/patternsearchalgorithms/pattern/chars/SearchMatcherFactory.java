@@ -20,46 +20,47 @@ public class SearchMatcherFactory implements MatcherFactory {
 	private DFA backmatcher;
 	private NFA grouper;
 
-	public SearchMatcherFactory(SearchMode mode, DFA finder, DFA backmatcher, NFA grouper) {
+	public SearchMatcherFactory(SearchMode mode) {
 		this.mode = mode;
-		this.finder = finder;
-		this.backmatcher = backmatcher;
-		this.grouper = grouper;
 	}
 
 	public static SearchMatcherFactory compile(RegexNode node, SearchMode mode) {
-		return new SearchMatcherFactory(mode, finderFrom(node), backmatcherFrom(node), grouperFrom(node));
+		return new SearchMatcherFactory(mode).compile(node);
 	}
 
-	private static DFA finderFrom(RegexNode node) {
+	private SearchMatcherFactory compile(RegexNode node) {
+		this.finder = finderFrom(node);
+		this.backmatcher = backmatcherFrom(node);
+		this.grouper = grouperFrom(node);
+
+		return this;
+	}
+
+	private DFA finderFrom(RegexNode node) {
 		NFABuilder builder = new NFABuilder();
 
 		NFAComponent base = node.accept(builder);
 		NFAComponent selfloop = builder.matchStarLoop(builder.match(MIN_VALUE, MAX_VALUE)).silent();
 		NFAComponent finder = builder.matchConcatenation(asList(selfloop, base));
 
-		NFA finderNFA = finder.toFullNFA();
-
-		return DFA.from(finderNFA);
+		return DFA.from(builder.build(finder));
 	}
 
-	private static DFA backmatcherFrom(RegexNode node) {
+	private DFA backmatcherFrom(RegexNode node) {
 		NFABuilder builder = new NFABuilder();
 
 		NFAComponent base = node.accept(builder);
 		NFAComponent reverse = base.reverse();
 
-		NFA reverseNFA = reverse.toFullNFA();
-
-		return DFA.from(reverseNFA);
+		return DFA.from(builder.build(reverse));
 	}
 
-	private static NFA grouperFrom(RegexNode node) {
+	private NFA grouperFrom(RegexNode node) {
 		NFABuilder builder = new NFABuilder();
 
 		NFAComponent base = builder.matchGroup(node.accept(builder), 0);
 
-		NFA grouper = base.toFullNFA();
+		NFA grouper = builder.build(base);
 		grouper.prune();
 
 		return grouper;

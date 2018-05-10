@@ -427,6 +427,15 @@ public class NFABuilder implements RegexNodeVisitor<NFAComponent> {
 
 	public NFA build(RegexNode node) {
 		NFAComponent nfa = node.accept(this);
-		return nfa.toFullNFA(charset);
+		return build(nfa);
+	}
+
+	public NFA build(NFAComponent nfa) {
+		State start = nfa.start;
+		State end = nfa.end;
+		if (end != null) {
+			end.setAccepting();
+		}
+		return new NFA(start, charset);
 	}
 }

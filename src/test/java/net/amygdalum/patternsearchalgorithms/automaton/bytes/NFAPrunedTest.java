@@ -253,7 +253,7 @@ public class NFAPrunedTest {
 	}
 
 	private static NFA automatonOf(NFAComponent automaton) {
-		NFA nfa = automaton.toFullNFA(UTF_8);
+		NFA nfa = new NFABuilder(UTF_8).build(automaton);
 		nfa.prune();
 		return nfa;
 	}

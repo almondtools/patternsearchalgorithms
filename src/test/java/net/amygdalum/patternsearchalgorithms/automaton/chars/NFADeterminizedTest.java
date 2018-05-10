@@ -300,7 +300,7 @@ public class NFADeterminizedTest {
 	}
 
 	private static NFA automatonOf(NFAComponent automaton) {
-		NFA nfa = automaton.toFullNFA();
+		NFA nfa = new NFABuilder().build(automaton);
 		nfa.determinize();
 		return nfa;
 	}

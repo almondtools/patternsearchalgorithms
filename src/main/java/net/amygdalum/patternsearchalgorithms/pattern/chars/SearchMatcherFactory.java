@@ -5,6 +5,7 @@ import static java.lang.Character.MIN_VALUE;
 import static java.util.Arrays.asList;
 
 import net.amygdalum.patternsearchalgorithms.automaton.chars.DFA;
+import net.amygdalum.patternsearchalgorithms.automaton.chars.MinimalNFAComponentFactory;
 import net.amygdalum.patternsearchalgorithms.automaton.chars.NFA;
 import net.amygdalum.patternsearchalgorithms.automaton.chars.NFABuilder;
 import net.amygdalum.patternsearchalgorithms.automaton.chars.NFAComponent;
@@ -37,22 +38,24 @@ public class SearchMatcherFactory implements MatcherFactory {
 	}
 
 	private DFA finderFrom(RegexNode node) {
-		NFABuilder builder = new NFABuilder();
+		NFABuilder builder = new NFABuilder(new MinimalNFAComponentFactory());
 
 		NFAComponent base = node.accept(builder);
 		NFAComponent selfloop = builder.matchStarLoop(builder.match(MIN_VALUE, MAX_VALUE)).silent();
 		NFAComponent finder = builder.matchConcatenation(asList(selfloop, base));
 
-		return DFA.from(builder.build(finder));
+		NFA nfa = builder.build(finder);
+		return DFA.from(nfa);
 	}
 
 	private DFA backmatcherFrom(RegexNode node) {
-		NFABuilder builder = new NFABuilder();
+		NFABuilder builder = new NFABuilder(new MinimalNFAComponentFactory());
 
 		NFAComponent base = node.accept(builder);
 		NFAComponent reverse = base.reverse();
 
-		return DFA.from(builder.build(reverse));
+		NFA nfa = builder.build(reverse);
+		return DFA.from(nfa);
 	}
 
 	private NFA grouperFrom(RegexNode node) {

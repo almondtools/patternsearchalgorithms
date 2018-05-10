@@ -47,7 +47,8 @@ public class SearchMatcherFactory implements MatcherFactory {
 		NFAComponent selfloop = builder.matchStarLoop(builder.match(MIN_VALUE, MAX_VALUE)).silent();
 		NFAComponent finder = builder.matchConcatenation(asList(selfloop, base));
 
-		return DFA.from(builder.build(finder));
+		NFA nfa = builder.build(finder);
+		return DFA.from(nfa);
 	}
 
 	private DFA backmatcherFrom(RegexNode node) {
@@ -56,7 +57,8 @@ public class SearchMatcherFactory implements MatcherFactory {
 		NFAComponent base = node.accept(builder);
 		NFAComponent reverse = base.reverse();
 
-		return DFA.from(builder.build(reverse));
+		NFA nfa = builder.build(reverse);
+		return DFA.from(nfa);
 	}
 
 	private NFA grouperFrom(RegexNode node) {

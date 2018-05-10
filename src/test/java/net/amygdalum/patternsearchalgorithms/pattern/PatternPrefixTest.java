@@ -135,7 +135,7 @@ public class PatternPrefixTest {
 	}
 
 	@Test
-	public void testPrefixPattern5simple() throws Exception {
+	public void testPrefixPattern4simple() throws Exception {
 		Pattern pattern = patterns.compile("(a|b)+");
 		Matcher matcher = pattern.matcher("axxxx");
 		boolean success = matcher.prefixes();
@@ -146,7 +146,7 @@ public class PatternPrefixTest {
 	}
 
 	@Test
-	public void testPrefixPattern5longest() throws Exception {
+	public void testPrefixPattern4longest() throws Exception {
 		Pattern pattern = patterns.compile("(a|b)+", LONGEST_NON_OVERLAPPING);
 		Matcher matcher = pattern.matcher("abaxxxx");
 		boolean success = matcher.prefixes();
@@ -157,7 +157,7 @@ public class PatternPrefixTest {
 	}
 
 	@Test
-	public void testPrefixPattern5first() throws Exception {
+	public void testPrefixPattern4first() throws Exception {
 		Pattern pattern = patterns.compile("(a|b)+", FIRSTMATCH_NON_OVERLAPPING);
 		Matcher matcher = pattern.matcher("abaxxxx");
 		boolean success = matcher.prefixes();
@@ -168,7 +168,7 @@ public class PatternPrefixTest {
 	}
 
 	@Test
-	public void testPrefixPattern6all() throws Exception {
+	public void testPrefixPattern5all() throws Exception {
 		Pattern pattern = patterns.compile("cabc|ab");
 		Matcher matcher = pattern.matcher("cabcxxxx");
 		boolean success = matcher.prefixes();
@@ -179,7 +179,7 @@ public class PatternPrefixTest {
 	}
 
 	@Test
-	public void testPrefixPattern8all() throws Exception {
+	public void testPrefixPattern6all() throws Exception {
 		Pattern pattern = patterns.compile("ba*", ALL);
 		Matcher matcher = pattern.matcher("baaaaxxx");
 		boolean success = matcher.prefixes();
@@ -190,7 +190,7 @@ public class PatternPrefixTest {
 	}
 
 	@Test
-	public void testPrefixPattern8firstNonOverlapping() throws Exception {
+	public void testPrefixPattern6firstNonOverlapping() throws Exception {
 		Pattern pattern = patterns.compile("ba*", FIRSTMATCH_NON_OVERLAPPING);
 		Matcher matcher = pattern.matcher("baaaaxxx");
 		boolean success = matcher.prefixes();
@@ -201,7 +201,7 @@ public class PatternPrefixTest {
 	}
 
 	@Test
-	public void testPrefixPattern8longestNonOverlapping() throws Exception {
+	public void testPrefixPattern6longestNonOverlapping() throws Exception {
 		Pattern pattern = patterns.compile("ba*", LONGEST_NON_OVERLAPPING);
 		Matcher matcher = pattern.matcher("baaaaxxx");
 		boolean success = matcher.prefixes();
@@ -212,7 +212,7 @@ public class PatternPrefixTest {
 	}
 
 	@Test
-	public void testPrefixPattern8longestOverlapping() throws Exception {
+	public void testPrefixPattern6longestOverlapping() throws Exception {
 		Pattern pattern = patterns.compile("ba*", LONGEST_WITH_OVERLAP);
 		Matcher matcher = pattern.matcher("baaaaxxx");
 		boolean success = matcher.prefixes();
@@ -223,7 +223,7 @@ public class PatternPrefixTest {
 	}
 
 	@Test
-	public void testPrefixSubmatchPattern8() throws Exception {
+	public void testPrefixSubmatchPattern6() throws Exception {
 		Pattern pattern = patterns.compile("([a-e]|(abc))+", LONGEST_NON_OVERLAPPING);
 		Matcher matcher = pattern.matcher("cabcdecabcxxxx");
 		boolean success = matcher.prefixes();
@@ -238,5 +238,17 @@ public class PatternPrefixTest {
 		assertThat(matcher.end(2), equalTo(10l));
 		assertThat(matcher.group(2), equalTo("abc"));
 	}
+	
+	@Test
+	public void testMatchPattern9() throws Exception {
+		Pattern pattern = patterns.compile("And God ([A-Za-z]+ |.){0,2}take them away");
+		assertTrue(pattern.matcher("And God take them away").matches());
+		assertTrue(pattern.matcher("And God should take them away").matches());
+		assertTrue(pattern.matcher("And God should not take them away").matches());
+		assertTrue(pattern.matcher("And God ..take them away").matches());
+		assertFalse(pattern.matcher("And God ...take them away").matches());
+	}
+
+
 
 }

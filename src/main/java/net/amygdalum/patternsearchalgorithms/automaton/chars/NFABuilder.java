@@ -25,9 +25,15 @@ import net.amygdalum.regexparser.UnboundedLoopNode;
 
 public class NFABuilder implements RegexNodeVisitor<NFAComponent> {
 
+	private NFAComponentFactory factory;
 	private int groupIndex;
 
 	public NFABuilder() {
+		this(new SimpleNFAComponentFactory());
+	}
+
+	public NFABuilder(NFAComponentFactory factory) {
+		this.factory = factory;
 		this.groupIndex = 0;
 	}
 
@@ -40,14 +46,14 @@ public class NFABuilder implements RegexNodeVisitor<NFAComponent> {
 		State s = new State();
 		State e = new State();
 		connect(s, e, value);
-		return new NFAComponent(s, e);
+		return factory.create(s, e);
 	}
 
 	public NFAComponent match(String value) {
 		State s = new State();
 		State e = new State();
 		connect(s, e, value);
-		return new NFAComponent(s, e);
+		return factory.create(s, e);
 	}
 
 	public NFAComponent match(char from, char to) {
@@ -59,7 +65,7 @@ public class NFABuilder implements RegexNodeVisitor<NFAComponent> {
 			to = temp;
 		}
 		connect(s, e, from, to);
-		return new NFAComponent(s, e);
+		return factory.create(s, e);
 	}
 
 	private void connect(State s, State e, String value) {
@@ -91,7 +97,7 @@ public class NFABuilder implements RegexNodeVisitor<NFAComponent> {
 		State e = new State();
 		new EpsilonTransition(s, a.start).withAction(new StartGroup(no)).connect();
 		new EpsilonTransition(a.end, e).withAction(new EndGroup(no)).connect();
-		return new NFAComponent(s, e);
+		return factory.create(s, e);
 	}
 
 	public NFAComponent matchAlternatives(List<NFAComponent> as) {
@@ -105,7 +111,7 @@ public class NFABuilder implements RegexNodeVisitor<NFAComponent> {
 			new EpsilonTransition(s, n).connect();
 			new EpsilonTransition(a.end, e).connect();
 		}
-		return new NFAComponent(s, e);
+		return factory.create(s, e);
 	}
 
 	public NFAComponent matchConcatenation(List<NFAComponent> as) {
@@ -125,17 +131,17 @@ public class NFABuilder implements RegexNodeVisitor<NFAComponent> {
 			}
 			last = a.end;
 		}
-		return new NFAComponent(s, e);
+		return factory.create(s, e);
 	}
 
 	public NFAComponent matchEmpty() {
 		State s = new State();
-		return new NFAComponent(s, s);
+		return factory.create(s, s);
 	}
 
 	public NFAComponent matchNothing() {
 		State s = new State();
-		return new NFAComponent(s, null);
+		return factory.create(s, null);
 	}
 
 	public NFAComponent matchOptional(NFAComponent a) {
@@ -144,15 +150,16 @@ public class NFABuilder implements RegexNodeVisitor<NFAComponent> {
 		new EpsilonTransition(s, e).connect();
 		new EpsilonTransition(s, a.start).connect();
 		new EpsilonTransition(a.end, e).connect();
-		return new NFAComponent(s, e);
+		return factory.create(s, e);
 	}
 
 	public NFAComponent matchUnlimitedLoop(NFAComponent a, int start) {
 		if (start == 0) {
 			return matchStarLoop(a);
 		} else {
-			List<NFAComponent> as = copyOf(a, start);
-			as.add(matchStarLoop(a.clone()));
+			List<NFAComponent> as = new ArrayList<>();
+			as.addAll(copyOf(a.clone(), start));
+			as.add(matchStarLoop(a));
 			return matchConcatenation(as);
 		}
 	}
@@ -164,7 +171,7 @@ public class NFABuilder implements RegexNodeVisitor<NFAComponent> {
 		new EpsilonTransition(s, e).connect();
 		new EpsilonTransition(a.end, a.start).connect();
 		new EpsilonTransition(a.end, e).connect();
-		return new NFAComponent(s, e);
+		return factory.create(s, e);
 	}
 
 	public NFAComponent matchRangeLoop(NFAComponent a, int start, int end) {
@@ -173,8 +180,8 @@ public class NFABuilder implements RegexNodeVisitor<NFAComponent> {
 		} else if (start == 0) {
 			return matchUpToN(a, end);
 		} else {
-			NFAComponent aFixed = matchFixedLoop(a, start);
-			NFAComponent aUpToN = matchUpToN(a.clone(), end - start);
+			NFAComponent aFixed = matchFixedLoop(a.clone(), start);
+			NFAComponent aUpToN = matchUpToN(a, end - start);
 			NFAComponent matchConcatenation = matchConcatenation(asList(aFixed, aUpToN));
 			return matchConcatenation;
 		}
@@ -197,7 +204,7 @@ public class NFABuilder implements RegexNodeVisitor<NFAComponent> {
 			new EpsilonTransition(ai.end, e).connect();
 			current = ai.end;
 		}
-		return new NFAComponent(s, e);
+		return factory.create(s, e);
 	}
 
 	private static List<NFAComponent> copyOf(NFAComponent a, int count) {

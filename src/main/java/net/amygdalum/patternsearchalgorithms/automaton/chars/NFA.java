@@ -3,6 +3,7 @@ package net.amygdalum.patternsearchalgorithms.automaton.chars;
 import static java.lang.Character.MAX_VALUE;
 import static java.lang.Character.MIN_VALUE;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -25,6 +26,7 @@ public class NFA implements Cloneable {
 	private State start;
 	private List<CharRange> charRanges;
 	private State[] states;
+	private int accepting;
 
 	public NFA(State start) {
 		init(start);
@@ -34,12 +36,14 @@ public class NFA implements Cloneable {
 		this.start = start;
 		this.charRanges = computeEquivalentCharRanges(start);
 		this.states = clean(start, null);
+		this.accepting = order(states);
 	}
 
 	private void init(State start, State error) {
 		this.start = start;
 		this.charRanges = computeEquivalentCharRanges(start);
 		this.states = clean(start, error);
+		this.accepting = order(states);
 	}
 
 	public State getStart() {
@@ -48,6 +52,10 @@ public class NFA implements Cloneable {
 
 	public State[] states() {
 		return states;
+	}
+
+	public State[] accepting() {
+		return Arrays.copyOfRange(states, accepting, states.length);
 	}
 
 	public List<CharRange> getCharRanges() {
@@ -92,13 +100,28 @@ public class NFA implements Cloneable {
 			current.disconnect();
 		}
 
-		int i = 0;
-		Set<State> foundLive = live.getDone();
-		for (State current : foundLive) {
-			current.setId(i);
-			i++;
+		return live.getDone().toArray(new State[0]);
+	}
+
+	private static int order(State[] states) {
+		int left = 0;
+		int right = states.length - 1;
+		while (left <= right) {
+			while (left < states.length && !states[left].isAccepting()) {
+				states[left].setId(left);
+				left++;
+			}
+			while (right >= 0 && states[right].isAccepting()) {
+				states[right].setId(right);
+				right--;
+			}
+			if (left < right) {
+				State temp = states[right];
+				states[right] = states[left];
+				states[left] = temp;
+			}
 		}
-		return foundLive.toArray(new State[0]);
+		return right + 1;
 	}
 
 	public void prune() {
@@ -125,11 +148,11 @@ public class NFA implements Cloneable {
 			for (Transition transition : current.out()) {
 				todo.add(transition.getTarget());
 				if (transition instanceof OrdinaryTransition) {
-					char ch = ((OrdinaryTransition) transition).getFrom();
+					char c = ((OrdinaryTransition) transition).getFrom();
 					Iterator<CharRange> iterator = missingRanges.iterator();
 					while (iterator.hasNext()) {
 						CharRange check = iterator.next();
-						if (check.contains(ch)) {
+						if (check.contains(c)) {
 							iterator.remove();
 							break;
 						}
@@ -181,10 +204,11 @@ public class NFA implements Cloneable {
 			}
 		}
 
-		digest(partitions);
+		State newstart = digest(partitions);
+		init(newstart);
 	}
 
-	private void digest(List<Set<State>> partitions) {
+	private State digest(List<Set<State>> partitions) {
 		Map<State, State> mapping = new IdentityHashMap<>();
 		State start = null;
 		for (Set<State> partition : partitions) {
@@ -214,8 +238,7 @@ public class NFA implements Cloneable {
 				transition.asPrototype().withOrigin(mappedOrigin).withTarget(mappedTarget).connect();
 			}
 		}
-		this.start = start;
-		this.states = clean(start, null);
+		return start;
 	}
 
 	private SplitPartition split(Set<State> partition, Set<State> splitter) {
@@ -495,10 +518,8 @@ public class NFA implements Cloneable {
 			State target = epsilon.getTarget();
 			int in = origin.in().size();
 			int out = target.out().size();
-			if (in == 0) {
+			if (origin == start) {
 				eliminateForward(epsilon);
-			} else if (out == 0) {
-				eliminateBackward(epsilon);
 			} else if (in >= out) {
 				eliminateForward(epsilon);
 			} else {
@@ -592,17 +613,6 @@ public class NFA implements Cloneable {
 				origin.disconnect();
 			}
 		}
-	}
-
-	public NFAComponent asComponent() {
-		State end = new State();
-		for (State state : states) {
-			if (state.isAccepting()) {
-				state.setAccepting(false);
-				new EpsilonTransition(state, end).connect();
-			}
-		}
-		return new NFAComponent(start, end);
 	}
 
 	@Override

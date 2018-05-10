@@ -1,6 +1,7 @@
 package net.amygdalum.patternsearchalgorithms.pattern.chars;
 
 import net.amygdalum.patternsearchalgorithms.automaton.chars.DFA;
+import net.amygdalum.patternsearchalgorithms.automaton.chars.MinimalNFAComponentFactory;
 import net.amygdalum.patternsearchalgorithms.automaton.chars.NFA;
 import net.amygdalum.patternsearchalgorithms.automaton.chars.NFABuilder;
 import net.amygdalum.patternsearchalgorithms.automaton.chars.NFAComponent;
@@ -31,8 +32,10 @@ public class SimpleMatcherFactory implements MatcherFactory {
 	}
 
 	private DFA matcherFrom(RegexNode node) {
-		NFABuilder builder = new NFABuilder();
-		return DFA.from(builder.build(node));
+		NFABuilder builder = new NFABuilder(new MinimalNFAComponentFactory());
+		
+		NFA nfa = builder.build(node);
+		return DFA.from(nfa);
 	}
 
 	private NFA grouperFrom(RegexNode node) {

@@ -266,8 +266,6 @@ public class PatternMatchTest {
 		assertFalse(pattern.matcher("a").matches());
 	}
 
-	@Only({ MATCH})
-	@Charsets({"CHARS"})
 	@Test
 	public void testCharClassWithComplement() throws Exception {
 		Pattern pattern = patterns.compile("[^bd]");

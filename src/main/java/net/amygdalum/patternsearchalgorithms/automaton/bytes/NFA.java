@@ -15,7 +15,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import net.amygdalum.util.builders.ArrayLists;
+import net.amygdalum.util.builders.Lists;
 import net.amygdalum.util.text.ByteRange;
 import net.amygdalum.util.worklist.WorkSet;
 
@@ -632,7 +632,7 @@ public class NFA implements Cloneable {
 		private List<ByteRange> ranges;
 
 		public ByteRangeAccumulator() {
-			ranges = ArrayLists.of(new ByteRange((byte) 0x00, (byte) 0xff, 256));
+			ranges = Lists.of(new ByteRange((byte) 0x00, (byte) 0xff, 256));
 		}
 
 		public List<ByteRange> getRanges() {

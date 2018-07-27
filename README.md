@@ -2,6 +2,7 @@ PatternSearchAlgorithms
 =======================
 [![Build Status](https://api.travis-ci.org/almondtools/patternsearchalgorithms.svg)](https://travis-ci.org/almondtools/patternsearchalgorithms)
 [![codecov](https://codecov.io/gh/almondtools/patternsearchalgorithms/branch/master/graph/badge.svg)](https://codecov.io/gh/almondtools/patternsearchalgorithms)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/78a45d0742df470abc02bac7be9cb1db)](https://www.codacy.com/project/almondtools/patternsearchalgorithms/dashboard?utm_source=github.com&utm_medium=referral&utm_content=almondtools/patternsearchalgorithms&utm_campaign=Badge_Grade_Dashboard)
 
 PatternSearchAlgorithms is a library using a deterministic finite automaton (**DFA**) for matching and searching. It does not provide features as group capturing, matching modes or backreferences. It is just efficient for complex patterns and large texts. The match time of such an automaton is linear dependent on the number of chars to match (**O(n)**, where n = number of chars to match).
 

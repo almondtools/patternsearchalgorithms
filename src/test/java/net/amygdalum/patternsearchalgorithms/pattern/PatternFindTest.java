@@ -180,7 +180,7 @@ public class PatternFindTest {
 
 	@Test
 	public void testFindPattern4firstMatchNonOverlapping() throws Exception {
-		Pattern pattern = patterns.compile("aba", SearchMode.FIRSTMATCH_NON_OVERLAPPING);
+		Pattern pattern = patterns.compile("aba", FIRSTMATCH_NON_OVERLAPPING);
 		Matcher matcher = pattern.matcher("xxxabababacxxxx");
 		assertTrue(matcher.find());
 		assertThat(matcher.start(), equalTo(3l));
@@ -248,7 +248,7 @@ public class PatternFindTest {
 
 	@Test
 	public void testFindPattern5firstMatchNonOverlapping() throws Exception {
-		Pattern pattern = patterns.compile("(a|b)+", SearchMode.FIRSTMATCH_NON_OVERLAPPING);
+		Pattern pattern = patterns.compile("(a|b)+", FIRSTMATCH_NON_OVERLAPPING);
 		Matcher matcher = pattern.matcher("xxxabababacxxxx");
 		assertTrue(matcher.find());
 		assertThat(matcher.start(), equalTo(3l));

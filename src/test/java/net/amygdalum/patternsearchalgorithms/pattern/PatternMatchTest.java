@@ -414,7 +414,7 @@ public class PatternMatchTest {
 	}
 
 	@Test
-	public void testMatchPattern2_1() throws Exception {
+	public void testMatchPattern2a() throws Exception {
 		Pattern pattern = patterns.compile("(([^:]+)://)?");
 		assertTrue(pattern.matcher("http://").matches());
 		assertTrue(pattern.matcher("ftp://").matches());
@@ -422,7 +422,7 @@ public class PatternMatchTest {
 	}
 
 	@Test
-	public void testMatchPattern2_2() throws Exception {
+	public void testMatchPattern2b() throws Exception {
 		Pattern pattern = patterns.compile("([^:/]+)");
 		assertTrue(pattern.matcher("www.linux.com").matches());
 		assertTrue(pattern.matcher("www.thelinuxshow.com").matches());

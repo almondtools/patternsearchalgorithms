@@ -6,7 +6,6 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.junit.Assert.assertThat;
 
-import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -21,7 +20,7 @@ public class NFAPrunedTest {
 
 	@Before
 	public void before() throws Exception {
-		this.nfaBuilder = new NFABuilder(StandardCharsets.UTF_8);
+		this.nfaBuilder = new NFABuilder(UTF_8);
 	}
 
 	@Test

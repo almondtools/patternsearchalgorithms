@@ -33,14 +33,6 @@ Finding a pattern
         System.out.println("to = " + matcher.match.end()); // to = 14
     }
 
-    ...
-    
-    Finder matcher = pattern.matcher("patternsearchalgorithms is more efficient than java.util.regex");
-    for (Match match : matcher.findAll()) {
-        System.out.println("found text = " + match.text()); // found text = more efficient
-        System.out.println("at = " + match.start()); // at = 27
-        System.out.println("to = " + match.end()); // to = 14
-    }
 ```
 
 Syntax

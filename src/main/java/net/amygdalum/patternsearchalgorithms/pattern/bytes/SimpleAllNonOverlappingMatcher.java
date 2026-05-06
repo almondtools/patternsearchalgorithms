@@ -72,11 +72,10 @@ public class SimpleAllNonOverlappingMatcher implements Matcher {
 		int state = matcher.start;
 		long localstart = input.current();
 		if (nextstate >= 0) {
-			groups.reset();
 			state = nextstate;
 			nextstate = -1;
 		} else if (matcher.accept(state)) {
-			groups.update(start, input.current());
+			groups.update(localstart, input.current());
 			nextstate = state;
 			input.move(groups.getEnd());
 			return true;
@@ -103,7 +102,11 @@ public class SimpleAllNonOverlappingMatcher implements Matcher {
 			}
 		}
 		if (matcher.accept(state)) {
-			groups.update(localstart, input.current());
+			long end = input.current();
+			if (groups.getStart() == end && groups.getEnd() == end) {
+				return false;
+			}
+			groups.update(localstart, end);
 			return true;
 		}
 		return false;

@@ -68,31 +68,48 @@ public class SimpleLongestOverlappingMatcher implements Matcher {
 	@Override
 	public boolean find() {
 		int state = matcher.start;
-		if (matcher.accept(state)) {
-			groups.update(start, input.current());
-		} else {
-			groups.reset();
-		}
 		long localstart = input.current();
-		while (!input.finished() && state >= 0) {
-			byte b = input.next();
-			state = matcher.next(state, b);
-			if (state == -1) {
-				if (groups.invalid()) {
-					localstart = localstart + 1;
-					input.move(localstart);
-					state = matcher.start;
-					continue;
+		outer: while (!input.finished()) {
+			if (matcher.accept(state)) {
+				long end = input.current();
+				if (groups.getStart() == localstart && groups.getEnd() == end) {
+					groups.reset();
 				} else {
-					input.move(localstart + 1);
-					return true;
+					groups.update(localstart, end);
 				}
-			} else if (matcher.accept(state)) {
-				groups.update(localstart, input.current());
+			} else {
+				groups.reset();
+			}
+			while (!input.finished() && state >= 0) {
+				byte b = input.next();
+				state = matcher.next(state, b);
+				if (state == -1) {
+					if (groups.invalid()) {
+						localstart = localstart + 1;
+						input.move(localstart);
+						state = matcher.start;
+						continue outer;
+					} else {
+						input.move(localstart + 1);
+						return true;
+					}
+				} else if (matcher.accept(state)) {
+					groups.update(localstart, input.current());
+				}
 			}
 		}
 		if (matcher.accept(state)) {
-			groups.update(localstart, input.current());
+			long end = input.current();
+			if (groups.getStart() == end && groups.getEnd() == end) {
+				groups.reset();
+			} else {
+				groups.update(localstart, end);
+			}
+		} else {
+			groups.reset();
+		}
+		if (!groups.invalid()) {
+			input.move(groups.getEnd());
 			return true;
 		}
 		return false;

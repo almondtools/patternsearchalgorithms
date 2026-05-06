@@ -86,10 +86,14 @@ public class SearchAllOverlappingMatcher implements Matcher {
 	public boolean find() {
 		if (!nextgroups.isEmpty()) {
 			Groups first = nextgroups.remove();
+			if (groups.getStart() == first.getStart() && groups.getEnd() == first.getEnd()) {
+				return false;
+			}
 			groups.update(first.getStart(), first.getEnd());
 			return true;
 		}
 		int state = finder.start;
+		long start = input.current();
 		if (finder.accept(state)) {
 			nextgroups.add(new Groups(start, input.current()));
 		} else {
@@ -113,6 +117,9 @@ public class SearchAllOverlappingMatcher implements Matcher {
 			return false;
 		} else {
 			Groups first = nextgroups.remove();
+			if (groups.getStart() == first.getStart() && groups.getEnd() == first.getEnd()) {
+				return false;
+			}
 			groups.update(first.getStart(), first.getEnd());
 			return true;
 		}

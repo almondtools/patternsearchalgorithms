@@ -68,37 +68,45 @@ public class SimpleLongestNonOverlappingMatcher implements Matcher {
 	@Override
 	public boolean find() {
 		int state = matcher.start;
+		long localstart = input.current();
+		outer: while (!input.finished()) {
+			if (matcher.accept(state)) {
+				long end = input.current();
+				if (groups.getStart() == localstart && groups.getEnd() == end) {
+					groups.reset();
+				} else {
+					groups.update(localstart, end);
+				}
+			} else {
+				groups.reset();
+			}
+			while (!input.finished() && state >= 0) {
+				char c = input.next();
+				state = matcher.next(state, c);
+				if (state == -1) {
+					if (groups.invalid()) {
+						localstart = localstart + 1;
+						input.move(localstart);
+						state = matcher.start;
+						continue outer;
+					} else {
+						input.move(groups.getEnd());
+						return true;
+					}
+				} else if (matcher.accept(state)) {
+					groups.update(localstart, input.current());
+				}
+			}
+		}
 		if (matcher.accept(state)) {
 			long end = input.current();
-			if (groups.getStart() == start && groups.getEnd() == end) {
+			if (groups.getStart() == end && groups.getEnd() == end) {
 				groups.reset();
 			} else {
-				groups.update(start, end);
+				groups.update(localstart, end);
 			}
 		} else {
 			groups.reset();
-		}
-		long localstart = input.current();
-		while (!input.finished() && state >= 0) {
-			char c = input.next();
-			state = matcher.next(state, c);
-			if (state == -1) {
-				if (groups.invalid()) {
-					localstart = localstart + 1;
-					input.move(localstart);
-					state = matcher.start;
-					continue;
-				} else {
-					input.move(groups.getEnd());
-					return true;
-				}
-			} else if (matcher.accept(state)) {
-				groups.update(localstart, input.current());
-			}
-		}
-		if (matcher.accept(state)) {
-			groups.update(localstart, input.current());
-			return true;
 		}
 		if (!groups.invalid()) {
 			input.move(groups.getEnd());

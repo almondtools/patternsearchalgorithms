@@ -94,6 +94,7 @@ public class SearchLongestNonOverlappingMatcher implements Matcher {
 			return true;
 		}
 		int state = finder.start;
+		long start = input.current();
 		if (finder.accept(state)) {
 			nextgroups.add(new Groups(start, input.current()));
 		} else {
@@ -117,8 +118,12 @@ public class SearchLongestNonOverlappingMatcher implements Matcher {
 			return false;
 		} else {
 			Groups first = nextGroup();
-			groups.update(first.getStart(), first.getEnd());
-			return true;
+			if (groups.subsumes(first)) {
+				return false;
+			} else {
+				groups.update(first.getStart(), first.getEnd());
+				return true;
+			}
 		}
 	}
 

@@ -72,6 +72,6 @@ Maven Dependency
 <dependency>
     <groupId>net.amygdalum</groupId>
     <artifactId>regexparser</artifactId>
-    <version>0.0.5</version>
+    <version>0.1.4</version>
 </dependency>
 ```

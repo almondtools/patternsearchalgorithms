@@ -1,14 +1,13 @@
 package net.amygdalum.patternsearchalgorithms.pattern;
 
-import static net.amygdalum.patternsearchalgorithms.pattern.OptimizationTarget.MATCH;
-import static net.amygdalum.patternsearchalgorithms.pattern.OptimizationTarget.SEARCH;
+import static net.amygdalum.patternsearchalgorithms.pattern.OptimizationTarget.*;
 import static net.amygdalum.patternsearchalgorithms.pattern.SearchMode.ALL;
 import static net.amygdalum.patternsearchalgorithms.pattern.SearchMode.FIRSTMATCH_NON_OVERLAPPING;
 import static net.amygdalum.patternsearchalgorithms.pattern.SearchMode.LONGEST_NON_OVERLAPPING;
 import static net.amygdalum.patternsearchalgorithms.pattern.SearchMode.LONGEST_WITH_OVERLAP;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Rule;
@@ -402,4 +401,143 @@ public class PatternFindTest {
 		assertThat(matcher.group(), equalTo("gaactc"));
 	}
 
+	@Test
+	public void testBug3aLongestNonOverlapping() throws Exception {
+		Pattern pattern = patterns.compile("a*", LONGEST_NON_OVERLAPPING);
+		Matcher matcher = pattern.matcher("bbb");
+
+		assertTrue(matcher.find());
+		assertThat(matcher.start(), equalTo(0l));
+		assertThat(matcher.end(), equalTo(0l));
+		assertThat(matcher.group(), equalTo(""));
+		assertTrue(matcher.find());
+		assertThat(matcher.start(), equalTo(1l));
+		assertThat(matcher.end(), equalTo(1l));
+		assertThat(matcher.group(), equalTo(""));
+		assertTrue(matcher.find());
+		assertThat(matcher.start(), equalTo(2l));
+		assertThat(matcher.end(), equalTo(2l));
+		assertThat(matcher.group(), equalTo(""));
+		assertTrue(matcher.find());
+		assertThat(matcher.start(), equalTo(3l));
+		assertThat(matcher.end(), equalTo(3l));
+		assertThat(matcher.group(), equalTo(""));
+		assertFalse(matcher.find());
+	}
+
+	@Test
+	public void testBug3bLongestNonOverlapping() throws Exception {
+		Pattern pattern = patterns.compile("a*", LONGEST_NON_OVERLAPPING);
+		Matcher matcher = pattern.matcher("");
+
+		assertTrue(matcher.find());
+		assertThat(matcher.start(), equalTo(0l));
+		assertThat(matcher.end(), equalTo(0l));
+		assertFalse(matcher.find());
+	}
+
+	@Test
+	public void testBug3aLongestOverlapping() throws Exception {
+		Pattern pattern = patterns.compile("a*", LONGEST_WITH_OVERLAP);
+		Matcher matcher = pattern.matcher("bbb");
+
+		assertTrue(matcher.find());
+		assertThat(matcher.start(), equalTo(0l));
+		assertThat(matcher.end(), equalTo(0l));
+		assertThat(matcher.group(), equalTo(""));
+		assertTrue(matcher.find());
+		assertThat(matcher.start(), equalTo(1l));
+		assertThat(matcher.end(), equalTo(1l));
+		assertThat(matcher.group(), equalTo(""));
+		assertTrue(matcher.find());
+		assertThat(matcher.start(), equalTo(2l));
+		assertThat(matcher.end(), equalTo(2l));
+		assertThat(matcher.group(), equalTo(""));
+		assertTrue(matcher.find());
+		assertThat(matcher.start(), equalTo(3l));
+		assertThat(matcher.end(), equalTo(3l));
+		assertThat(matcher.group(), equalTo(""));
+		assertFalse(matcher.find());
+	}
+
+	@Test
+	public void testBug3bLongestOverlapping() throws Exception {
+		Pattern pattern = patterns.compile("a*", LONGEST_WITH_OVERLAP);
+		Matcher matcher = pattern.matcher("");
+
+		assertTrue(matcher.find());
+		assertThat(matcher.start(), equalTo(0l));
+		assertThat(matcher.end(), equalTo(0l));
+		assertFalse(matcher.find());
+	}
+
+	@Test
+	public void testBug3aAll() throws Exception {
+		Pattern pattern = patterns.compile("a*", ALL);
+		Matcher matcher = pattern.matcher("bbb");
+
+		assertTrue(matcher.find());
+		assertThat(matcher.start(), equalTo(0l));
+		assertThat(matcher.end(), equalTo(0l));
+		assertThat(matcher.group(), equalTo(""));
+		assertTrue(matcher.find());
+		assertThat(matcher.start(), equalTo(1l));
+		assertThat(matcher.end(), equalTo(1l));
+		assertThat(matcher.group(), equalTo(""));
+		assertTrue(matcher.find());
+		assertThat(matcher.start(), equalTo(2l));
+		assertThat(matcher.end(), equalTo(2l));
+		assertThat(matcher.group(), equalTo(""));
+		assertTrue(matcher.find());
+		assertThat(matcher.start(), equalTo(3l));
+		assertThat(matcher.end(), equalTo(3l));
+		assertThat(matcher.group(), equalTo(""));
+		assertFalse(matcher.find());
+	}
+
+	@Test
+	public void testBug3bAll() throws Exception {
+		Pattern pattern = patterns.compile("a*", ALL);
+		Matcher matcher = pattern.matcher("");
+
+		assertTrue(matcher.find());
+		assertThat(matcher.start(), equalTo(0l));
+		assertThat(matcher.end(), equalTo(0l));
+		assertFalse(matcher.find());
+	}
+
+	@Test
+	public void testBug3aFirst() throws Exception {
+		Pattern pattern = patterns.compile("a*", FIRSTMATCH_NON_OVERLAPPING);
+		Matcher matcher = pattern.matcher("bbb");
+
+		assertTrue(matcher.find());
+		assertThat(matcher.start(), equalTo(0l));
+		assertThat(matcher.end(), equalTo(0l));
+		assertThat(matcher.group(), equalTo(""));
+		assertTrue(matcher.find());
+		assertThat(matcher.start(), equalTo(1l));
+		assertThat(matcher.end(), equalTo(1l));
+		assertThat(matcher.group(), equalTo(""));
+		assertTrue(matcher.find());
+		assertThat(matcher.start(), equalTo(2l));
+		assertThat(matcher.end(), equalTo(2l));
+		assertThat(matcher.group(), equalTo(""));
+		assertTrue(matcher.find());
+		assertThat(matcher.start(), equalTo(3l));
+		assertThat(matcher.end(), equalTo(3l));
+		assertThat(matcher.group(), equalTo(""));
+		assertFalse(matcher.find());
+	}
+
+	@Test
+	public void testBug3bFirst() throws Exception {
+		Pattern pattern = patterns.compile("a*", FIRSTMATCH_NON_OVERLAPPING);
+		Matcher matcher = pattern.matcher("");
+
+		assertTrue(matcher.find());
+		assertThat(matcher.start(), equalTo(0l));
+		assertThat(matcher.end(), equalTo(0l));
+		assertFalse(matcher.find());
+	}
 }

@@ -239,14 +239,51 @@ public class PatternPrefixTest {
 		assertThat(matcher.group(2), equalTo("abc"));
 	}
 
+
 	@Test
-	public void testMatchPattern9() throws Exception {
-		Pattern pattern = patterns.compile("And God ([A-Za-z]+ |.){0,2}take them away");
-		assertTrue(pattern.matcher("And God take them away").matches());
-		assertTrue(pattern.matcher("And God should take them away").matches());
-		assertTrue(pattern.matcher("And God should not take them away").matches());
-		assertTrue(pattern.matcher("And God ..take them away").matches());
-		assertFalse(pattern.matcher("And God ...take them away").matches());
+	public void testPrefixPattern7all() throws Exception {
+		Pattern pattern = patterns.compile("a*", ALL);
+		Matcher matcher = pattern.matcher("");
+		boolean success = matcher.prefixes();
+		assertTrue(success);
+		assertThat(matcher.start(), equalTo(0l));
+		assertThat(matcher.end(), equalTo(0l));
+		assertThat(matcher.group(), equalTo(""));
 	}
+
+	@Test
+	public void testPrefixPattern7firstNonOverlapping() throws Exception {
+		Pattern pattern = patterns.compile("a*", FIRSTMATCH_NON_OVERLAPPING);
+		Matcher matcher = pattern.matcher("");
+		boolean success = matcher.prefixes();
+		assertTrue(success);
+		assertThat(matcher.start(), equalTo(0l));
+		assertThat(matcher.end(), equalTo(0l));
+		assertThat(matcher.group(), equalTo(""));
+	}
+
+	@Test
+	public void testPrefixPattern7longestNonOverlapping() throws Exception {
+		Pattern pattern = patterns.compile("a*", LONGEST_NON_OVERLAPPING);
+		Matcher matcher = pattern.matcher("");
+		boolean success = matcher.prefixes();
+		assertTrue(success);
+		assertThat(matcher.start(), equalTo(0l));
+		assertThat(matcher.end(), equalTo(0l));
+		assertThat(matcher.group(), equalTo(""));
+	}
+
+	@Test
+	public void testPrefixPattern7longestOverlapping() throws Exception {
+		Pattern pattern = patterns.compile("a*", LONGEST_WITH_OVERLAP);
+		Matcher matcher = pattern.matcher("");
+		boolean success = matcher.prefixes();
+		assertTrue(success);
+		assertThat(matcher.start(), equalTo(0l));
+		assertThat(matcher.end(), equalTo(0l));
+		assertThat(matcher.group(), equalTo(""));
+	}
+
+
 
 }

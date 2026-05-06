@@ -124,7 +124,7 @@ public class SearchLongestNonOverlappingMatcher implements Matcher {
 
 	private void verifyMatches() {
 		long end = input.current();
-		
+
 		ByteProvider reverse = new ReverseByteProvider(input);
 		int state = backmatcher.start;
 		if (backmatcher.accept(state)) {
@@ -160,7 +160,7 @@ public class SearchLongestNonOverlappingMatcher implements Matcher {
 				break;
 			}
 		}
-		
+
 		return groups;
 	}
 

@@ -30,7 +30,7 @@ public class SimpleMatcherFactory implements MatcherFactory {
 	private SimpleMatcherFactory compile(RegexNode node) {
 		this.matcher = matcherFrom(node);
 		this.grouper = grouperFrom(node);
-		
+
 		return this;
 	}
 

@@ -34,7 +34,7 @@ class BytePattern extends Pattern {
 		ByteProvider bytes = new StringByteProvider(input, 0, charset);
 		return factory.newMatcher(bytes);
 	}
-	
+
 	@Override
 	public Matcher matcher(CharProvider input) {
 		throw new UnsupportedOperationException();
@@ -44,7 +44,7 @@ class BytePattern extends Pattern {
 	public Matcher matcher(byte[] input) {
 		return factory.newMatcher(new StringByteProvider(input, 0, charset));
 	}
-	
+
 	@Override
 	public Matcher matcher(ByteProvider input) {
 		return factory.newMatcher(input);
@@ -64,7 +64,7 @@ class BytePattern extends Pattern {
 			return SearchMatcherFactory.compile(node, charset.getCharset(), mode);
 		case MATCH:
 		default:
-			return SimpleMatcherFactory.compile(node, charset.getCharset(),  mode);
+			return SimpleMatcherFactory.compile(node, charset.getCharset(), mode);
 		}
 	}
 

@@ -7,7 +7,7 @@ public class MinimalNFAComponentFactory implements NFAComponentFactory {
 		end.setAccepting();
 		NFA nfa = new NFA(start);
 		nfa.determinize();
-		
+
 		return new NFAComponent(nfa.getStart(), getEnd(nfa));
 	}
 

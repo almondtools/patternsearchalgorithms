@@ -77,7 +77,7 @@ public class SimpleAllOverlappingMatcher implements Matcher {
 			groups.reset();
 			state = nextstate;
 			nextstate = -1;
-			localstart = nextpos; 
+			localstart = nextpos;
 		} else if (matcher.accept(state)) {
 			groups.update(start, input.current());
 			nextstate = state;

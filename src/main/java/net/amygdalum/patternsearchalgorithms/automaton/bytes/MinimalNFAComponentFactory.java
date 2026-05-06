@@ -5,7 +5,7 @@ import java.nio.charset.Charset;
 public class MinimalNFAComponentFactory implements NFAComponentFactory {
 
 	private Charset charset;
-	
+
 	public MinimalNFAComponentFactory(Charset charset) {
 		this.charset = charset;
 	}
@@ -15,7 +15,7 @@ public class MinimalNFAComponentFactory implements NFAComponentFactory {
 		end.setAccepting();
 		NFA nfa = new NFA(start, charset);
 		nfa.determinize();
-		
+
 		return new NFAComponent(nfa.getStart(), getEnd(nfa));
 	}
 

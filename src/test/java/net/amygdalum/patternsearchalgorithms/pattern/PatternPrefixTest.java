@@ -8,7 +8,7 @@ import static net.amygdalum.patternsearchalgorithms.pattern.SearchMode.LONGEST_N
 import static net.amygdalum.patternsearchalgorithms.pattern.SearchMode.LONGEST_WITH_OVERLAP;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Rule;
@@ -17,7 +17,7 @@ import org.junit.Test;
 import net.amygdalum.patternsearchalgorithms.pattern.PatternRule.Charsets;
 import net.amygdalum.patternsearchalgorithms.pattern.PatternRule.Only;
 
-@Only({ MATCH, SEARCH })
+@Only({MATCH, SEARCH})
 @Charsets({"UTF-8", "CHARS"})
 public class PatternPrefixTest {
 
@@ -238,7 +238,7 @@ public class PatternPrefixTest {
 		assertThat(matcher.end(2), equalTo(10l));
 		assertThat(matcher.group(2), equalTo("abc"));
 	}
-	
+
 	@Test
 	public void testMatchPattern9() throws Exception {
 		Pattern pattern = patterns.compile("And God ([A-Za-z]+ |.){0,2}take them away");
@@ -248,7 +248,5 @@ public class PatternPrefixTest {
 		assertTrue(pattern.matcher("And God ..take them away").matches());
 		assertFalse(pattern.matcher("And God ...take them away").matches());
 	}
-
-
 
 }

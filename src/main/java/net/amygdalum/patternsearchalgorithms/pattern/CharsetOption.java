@@ -9,7 +9,7 @@ public class CharsetOption implements PatternOption {
 	public CharsetOption(Charset charset) {
 		this.charset = charset;
 	}
-	
+
 	public static CharsetOption firstOf(PatternOption[] options) {
 		for (PatternOption option : options) {
 			if (option instanceof CharsetOption) {
@@ -17,8 +17,8 @@ public class CharsetOption implements PatternOption {
 			}
 		}
 		return null;
-	} 
-	
+	}
+
 	public Charset getCharset() {
 		return charset;
 	}

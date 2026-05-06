@@ -20,16 +20,16 @@ public class NFAComponent implements Cloneable {
 			State target = current.getTarget();
 			todo.addAll(target.out());
 		}
-		
+
 		for (Transition transition : todo.getDone()) {
 			State origin = transition.getOrigin();
 			State target = transition.getTarget();
 			Action action = transition.getAction();
-			
+
 			transition.remove();
 			transition.asPrototype().withOrigin(target).withTarget(origin).withAction(action).connect();
 		}
-		
+
 		return new NFAComponent(end, start);
 	}
 
@@ -39,7 +39,7 @@ public class NFAComponent implements Cloneable {
 		while (!todo.isEmpty()) {
 			State current = todo.remove();
 			current.setSilent();
-		}		
+		}
 		return this;
 	}
 

@@ -9,12 +9,15 @@ public interface Matcher {
 	boolean find();
 
 	long start();
+
 	long start(int no);
 
 	long end();
+
 	long end(int no);
 
 	String group();
+
 	String group(int no);
 
 }

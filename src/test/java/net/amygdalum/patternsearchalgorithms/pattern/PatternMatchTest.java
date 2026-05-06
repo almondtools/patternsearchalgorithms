@@ -14,7 +14,7 @@ import static net.amygdalum.util.text.CharUtils.before;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Rule;
@@ -23,7 +23,7 @@ import org.junit.Test;
 import net.amygdalum.patternsearchalgorithms.pattern.PatternRule.Charsets;
 import net.amygdalum.patternsearchalgorithms.pattern.PatternRule.Only;
 
-@Only({ MATCH, SEARCH })
+@Only({MATCH, SEARCH})
 @Charsets({"UTF-8", "CHARS"})
 public class PatternMatchTest {
 
@@ -469,5 +469,5 @@ public class PatternMatchTest {
 	public void testOpenBracket() throws Exception {
 		patterns.compile("[");
 	}
-	
+
 }

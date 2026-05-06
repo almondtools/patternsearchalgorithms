@@ -22,10 +22,11 @@ public abstract class Pattern {
 	public abstract String pattern();
 
 	public abstract Matcher matcher(String input);
+
 	public abstract Matcher matcher(CharProvider input);
 
 	public abstract Matcher matcher(byte[] input);
-	public abstract Matcher matcher(ByteProvider input);
 
+	public abstract Matcher matcher(ByteProvider input);
 
 }

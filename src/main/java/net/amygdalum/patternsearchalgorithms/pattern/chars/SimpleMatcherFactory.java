@@ -33,7 +33,7 @@ public class SimpleMatcherFactory implements MatcherFactory {
 
 	private DFA matcherFrom(RegexNode node) {
 		NFABuilder builder = new NFABuilder(new MinimalNFAComponentFactory());
-		
+
 		NFA nfa = builder.build(node);
 		return DFA.from(nfa);
 	}

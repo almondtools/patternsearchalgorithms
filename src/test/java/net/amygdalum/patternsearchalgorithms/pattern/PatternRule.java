@@ -118,19 +118,19 @@ public class PatternRule implements TestRule {
 	}
 
 	@Retention(RetentionPolicy.RUNTIME)
-	@Target({ ElementType.METHOD, ElementType.TYPE })
+	@Target({ElementType.METHOD, ElementType.TYPE})
 	public @interface Only {
 		OptimizationTarget[] value();
 	}
 
 	@Retention(RetentionPolicy.RUNTIME)
-	@Target({ ElementType.METHOD, ElementType.TYPE })
+	@Target({ElementType.METHOD, ElementType.TYPE})
 	public @interface Not {
 		OptimizationTarget[] value();
 	}
 
 	@Retention(RetentionPolicy.RUNTIME)
-	@Target({ ElementType.METHOD, ElementType.TYPE })
+	@Target({ElementType.METHOD, ElementType.TYPE})
 	public @interface Charsets {
 		String[] value();
 	}

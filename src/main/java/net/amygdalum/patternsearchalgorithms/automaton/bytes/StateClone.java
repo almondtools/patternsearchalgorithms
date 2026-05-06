@@ -20,7 +20,7 @@ public class StateClone {
 
 	public static StateClone cloneTree(State start) {
 		StateClone stateClone = new StateClone(start);
-		
+
 		stateClone.process();
 
 		return stateClone;

@@ -3,7 +3,7 @@ package net.amygdalum.patternsearchalgorithms.automaton.chars;
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -200,14 +200,14 @@ public class NFADeterminizedTest {
 
 	@Test
 	public void testRangeLoopOptional() throws Exception {
-		NFA ab_question = automatonOf(nfaBuilder.matchRangeLoop(nfaBuilder.match("ab"), 0,1));
+		NFA ab_question = automatonOf(nfaBuilder.matchRangeLoop(nfaBuilder.match("ab"), 0, 1));
 		assertThat(matchSamples(ab_question, ""), contains(""));
 		assertThat(matchSamples(ab_question, "ab"), contains("ab"));
 		assertThat(matchSamples(ab_question, "a"), empty());
 		assertThat(matchSamples(ab_question, "b"), empty());
 		assertThat(matchSamples(ab_question, "abc"), empty());
 	}
-	
+
 	@Test
 	public void testBoundedLoopUpto() throws Exception {
 		NFA ab_question = automatonOf(nfaBuilder.matchRangeLoop(nfaBuilder.match("ab"), 0, 2));
@@ -219,7 +219,7 @@ public class NFADeterminizedTest {
 		assertThat(matchSamples(ab_question, "b"), empty());
 		assertThat(matchSamples(ab_question, "abc"), empty());
 	}
-	
+
 	@Test
 	public void testMatchFixedLoop() throws Exception {
 		NFA a_2 = automatonOf(nfaBuilder.matchFixedLoop(nfaBuilder.match('a'), 2));

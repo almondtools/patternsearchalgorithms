@@ -12,7 +12,7 @@ public class StartGroup implements Action {
 	public Groups applyTo(Groups groups, long pos) {
 		return groups.startGroup(no, pos);
 	}
-	
+
 	@Override
 	public String toString() {
 		return "\u2191" + no;

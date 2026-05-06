@@ -16,7 +16,7 @@ public abstract class AbstractTransition implements Transition {
 		this.origin = origin;
 		return this;
 	}
-	
+
 	@Override
 	public Transition withTarget(State target) {
 		this.target = target;
@@ -28,7 +28,7 @@ public abstract class AbstractTransition implements Transition {
 		this.action = action;
 		return this;
 	}
-	
+
 	@Override
 	public State getOrigin() {
 		return origin;
@@ -38,12 +38,12 @@ public abstract class AbstractTransition implements Transition {
 	public State getTarget() {
 		return target;
 	}
-	
+
 	@Override
 	public Action getAction() {
 		return action;
 	}
-	
+
 	@Override
 	public Groups executeAction(Groups groups, long pos) {
 		if (action == null) {
@@ -52,13 +52,13 @@ public abstract class AbstractTransition implements Transition {
 			return action.applyTo(groups, pos);
 		}
 	}
-	
+
 	@Override
 	public void connect() {
 		origin.addOut(this);
 		target.addIn(this);
 	}
-	
+
 	@Override
 	public void remove() {
 		origin.removeOut(this);

@@ -10,7 +10,7 @@ public class EpsilonTransition extends AbstractTransition {
 	public Transition asPrototype() {
 		return new EpsilonTransition(null, null).withAction(getAction());
 	}
-	
+
 	@Override
 	public String toString() {
 		return "-> " + getTarget().getId();

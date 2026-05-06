@@ -2,7 +2,7 @@ package net.amygdalum.patternsearchalgorithms.pattern;
 
 public enum OptimizationTarget implements PatternOption {
 
-	MATCH, SEARCH; 
+	MATCH, SEARCH;
 
 	public static OptimizationTarget bestOf(PatternOption[] options) {
 		OptimizationTarget target = MATCH;
@@ -15,6 +15,6 @@ public enum OptimizationTarget implements PatternOption {
 			}
 		}
 		return target;
-	} 
-	
+	}
+
 }

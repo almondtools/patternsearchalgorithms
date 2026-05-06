@@ -8,7 +8,7 @@ import net.amygdalum.regexparser.RegexParserOption;
 public enum RegexOption implements PatternOption {
 
 	DOT_ALL(RegexParserOption.DOT_ALL);
-	
+
 	private RegexParserOption option;
 
 	private RegexOption(RegexParserOption option) {
@@ -31,5 +31,5 @@ public enum RegexOption implements PatternOption {
 			}
 		}
 		return patternOptions.toArray(new RegexOption[0]);
-	} 
+	}
 }

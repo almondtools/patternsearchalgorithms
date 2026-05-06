@@ -111,7 +111,7 @@ public class NFABuilder implements RegexNodeVisitor<NFAComponent> {
 		} else if (length == 1) {
 			new BytesTransition(s, bytes.from[0], bytes.to[0], e).connect();
 		} else {
-			State[] states = new State[] { s };
+			State[] states = new State[] {s};
 			for (int i = 0; i < length - 1; i++) {
 				states = connectState(states, bytes.from[i], bytes.to[i]);
 			}
@@ -122,16 +122,16 @@ public class NFABuilder implements RegexNodeVisitor<NFAComponent> {
 	private State[] connectState(State[] states, byte from, byte to) {
 		if (states.length == 1) {
 			if (from == to) {
-				State[] next = new State[] { new State() };
+				State[] next = new State[] {new State()};
 				new ByteTransition(states[0], from, next[0]).connect();
 				return next;
 			} else if (to - from == 1) {
-				State[] next = new State[] { new State(), new State() };
+				State[] next = new State[] {new State(), new State()};
 				new ByteTransition(states[0], from, next[0]).connect();
 				new ByteTransition(states[0], to, next[1]).connect();
 				return next;
 			} else {
-				State[] next = new State[] { new State(), new State(), new State() };
+				State[] next = new State[] {new State(), new State(), new State()};
 				new ByteTransition(states[0], from, next[0]).connect();
 				new BytesTransition(states[0], after(from), before(to), next[1]).connect();
 				new ByteTransition(states[0], to, next[2]).connect();
@@ -139,12 +139,12 @@ public class NFABuilder implements RegexNodeVisitor<NFAComponent> {
 			}
 		} else if (states.length == 2) {
 			if (from == MAXBYTE && to == MINBYTE) {
-				State[] next = new State[] { new State(), new State() };
+				State[] next = new State[] {new State(), new State()};
 				new ByteTransition(states[0], from, next[0]).connect();
 				new ByteTransition(states[1], to, next[1]).connect();
 				return next;
 			} else {
-				State[] next = new State[] { new State(), new State(), new State() };
+				State[] next = new State[] {new State(), new State(), new State()};
 				new ByteTransition(states[0], from, next[0]).connect();
 				if (from != MAXBYTE) {
 					new BytesTransition(states[0], after(from), MAXBYTE, next[1]).connect();
@@ -156,7 +156,7 @@ public class NFABuilder implements RegexNodeVisitor<NFAComponent> {
 				return next;
 			}
 		} else if (states.length == 3) {
-			State[] next = new State[] { new State(), new State(), new State() };
+			State[] next = new State[] {new State(), new State(), new State()};
 			new ByteTransition(states[0], from, next[0]).connect();
 			if (from != MAXBYTE) {
 				new BytesTransition(states[0], after(from), MAXBYTE, next[1]).connect();

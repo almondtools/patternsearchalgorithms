@@ -120,7 +120,7 @@ public class SearchAllNonOverlappingMatcher implements Matcher {
 
 	private void verifyMatches() {
 		long end = input.current();
-		
+
 		CharProvider reverse = new ReverseCharProvider(input);
 		int state = backmatcher.start;
 		if (backmatcher.accept(state)) {
@@ -151,7 +151,7 @@ public class SearchAllNonOverlappingMatcher implements Matcher {
 				break;
 			}
 		}
-		
+
 		return groups;
 	}
 

@@ -540,4 +540,63 @@ public class PatternFindTest {
 		assertThat(matcher.end(), equalTo(0l));
 		assertFalse(matcher.find());
 	}
+
+	@Test
+	public void testFindPattern8longestNonOverlapping() throws Exception {
+		Pattern pattern = patterns.compile("a(.*B)?", FIRSTMATCH_NON_OVERLAPPING);
+		Matcher matcher = pattern.matcher("aaa");
+		assertTrue(matcher.find());
+		assertThat(matcher.start(), equalTo(0l));
+		assertThat(matcher.end(), equalTo(1l));
+		assertThat(matcher.group(), equalTo("a"));
+		assertTrue(matcher.find());
+		assertThat(matcher.start(), equalTo(1l));
+		assertThat(matcher.end(), equalTo(2l));
+		assertThat(matcher.group(), equalTo("a"));
+		assertTrue(matcher.find());
+		assertThat(matcher.start(), equalTo(2l));
+		assertThat(matcher.end(), equalTo(3l));
+		assertThat(matcher.group(), equalTo("a"));
+		assertFalse(matcher.find());
+	}
+
+	@Test
+	public void testFindPattern8longestOverlapping() throws Exception {
+		Pattern pattern = patterns.compile("a(.*B)?", LONGEST_WITH_OVERLAP);
+		Matcher matcher = pattern.matcher("aaa");
+		assertTrue(matcher.find());
+		assertThat(matcher.start(), equalTo(0l));
+		assertThat(matcher.end(), equalTo(1l));
+		assertThat(matcher.group(), equalTo("a"));
+		assertTrue(matcher.find());
+		assertThat(matcher.start(), equalTo(1l));
+		assertThat(matcher.end(), equalTo(2l));
+		assertThat(matcher.group(), equalTo("a"));
+		assertTrue(matcher.find());
+		assertThat(matcher.start(), equalTo(2l));
+		assertThat(matcher.end(), equalTo(3l));
+		assertThat(matcher.group(), equalTo("a"));
+		assertFalse(matcher.find());
+	}
+
+	@Test
+	public void testFindPattern8all() throws Exception {
+		Pattern pattern = patterns.compile("a(.*B)?", ALL);
+		Matcher matcher = pattern.matcher("aaa");
+		assertTrue(matcher.find());
+		assertThat(matcher.start(), equalTo(0l));
+		assertThat(matcher.end(), equalTo(1l));
+		assertThat(matcher.group(), equalTo("a"));
+		assertTrue(matcher.find());
+		assertThat(matcher.start(), equalTo(1l));
+		assertThat(matcher.end(), equalTo(2l));
+		assertThat(matcher.group(), equalTo("a"));
+		assertTrue(matcher.find());
+		assertThat(matcher.start(), equalTo(2l));
+		assertThat(matcher.end(), equalTo(3l));
+		assertThat(matcher.group(), equalTo("a"));
+		assertFalse(matcher.find());
+	}
+
+
 }

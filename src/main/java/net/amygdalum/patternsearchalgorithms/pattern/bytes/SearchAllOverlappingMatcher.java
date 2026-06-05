@@ -108,11 +108,6 @@ public class SearchAllOverlappingMatcher implements Matcher {
 				input.move(end);
 			}
 		}
-		if (finder.accept(state)) {
-			long end = input.current();
-			verifyMatches();
-			input.move(end);
-		}
 		if (nextgroups.isEmpty()) {
 			return false;
 		} else {
@@ -140,10 +135,6 @@ public class SearchAllOverlappingMatcher implements Matcher {
 				long start = input.current();
 				nextgroups.add(new Groups(start, end));
 			}
-		}
-		if (backmatcher.accept(state)) {
-			long start = input.current();
-			nextgroups.add(new Groups(start, end));
 		}
 	}
 

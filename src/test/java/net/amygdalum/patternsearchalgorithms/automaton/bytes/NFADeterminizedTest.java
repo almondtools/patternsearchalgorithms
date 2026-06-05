@@ -12,6 +12,7 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 
+import net.amygdalum.util.io.ReverseByteProvider;
 import net.amygdalum.util.io.StringByteProvider;
 
 public class NFADeterminizedTest {
@@ -251,6 +252,29 @@ public class NFADeterminizedTest {
 		assertThat(matchSamples(aOrb, "üaö"), empty());
 	}
 
+	@Test
+	public void testMatchOptionalContainingLoop() throws Exception {
+		NFA a_star_b_question = automatonOf(nfaBuilder.matchOptional(nfaBuilder.matchConcatenation(asList(
+			nfaBuilder.matchStarLoop(nfaBuilder.match('a')),
+			nfaBuilder.match('b')))));
+		assertThat(matchSamples(a_star_b_question, ""), contains(""));
+		assertThat(matchSamples(a_star_b_question, "b"), contains("b"));
+		assertThat(matchSamples(a_star_b_question, "ab"), contains("ab"));
+		assertThat(matchSamples(a_star_b_question, "aab"), contains("aab"));
+		assertThat(matchSamples(a_star_b_question, "a"), empty());
+		assertThat(matchSamples(a_star_b_question, "aa"), empty());
+	}
+
+	@Test
+	public void testMatchReversedStarLoop() throws Exception {
+		NFAComponent any_star = nfaBuilder.matchStarLoop(nfaBuilder.match(Character.MIN_VALUE, Character.MAX_VALUE));
+		NFA reversed = automatonOf(any_star.reverse());
+		assertThat(matchReverseSamples(reversed, ""), contains(""));
+		assertThat(matchReverseSamples(reversed, "a"), contains("a"));
+		assertThat(matchReverseSamples(reversed, "ab"), contains("ab"));
+		assertThat(matchReverseSamples(reversed, "ä"), contains("ä"));
+	}
+
 	private static NFA automatonOf(NFAComponent automaton) {
 		NFA nfa = new NFABuilder(UTF_8).build(automaton);
 		nfa.determinize();
@@ -261,6 +285,19 @@ public class NFADeterminizedTest {
 		Set<String> matched = new HashSet<>();
 		for (String sample : samples) {
 			NFAMatcher m = new NFAMatcher(a, new StringByteProvider(sample, 0, a.getCharset()));
+			if (m.matches()) {
+				matched.add(sample);
+			}
+		}
+		return matched;
+	}
+
+	public static Set<String> matchReverseSamples(NFA a, String... samples) {
+		Set<String> matched = new HashSet<>();
+		for (String sample : samples) {
+			StringByteProvider input = new StringByteProvider(sample, 0, a.getCharset());
+			input.finish();
+			NFAMatcher m = new NFAMatcher(a, new ReverseByteProvider(input));
 			if (m.matches()) {
 				matched.add(sample);
 			}

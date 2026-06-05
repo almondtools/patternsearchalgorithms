@@ -531,17 +531,12 @@ public class NFA implements Cloneable {
 	}
 
 	private Set<EpsilonTransition> propagateStates(EpsilonTransition epsilon) {
-		boolean accepting = false;
-		boolean silent = true;
-
 		Set<EpsilonTransition> propagated = new HashSet<>();
 		WorkSet<State> eclosure = new WorkSet<>();
 		eclosure.add(epsilon.getOrigin());
 		eclosure.add(epsilon.getTarget());
 		while (!eclosure.isEmpty()) {
 			State next = eclosure.remove();
-			accepting |= next.isAccepting();
-			silent &= next.isSilent();
 
 			for (Transition transition : next.out()) {
 				if (transition instanceof EpsilonTransition) {
@@ -558,6 +553,23 @@ public class NFA implements Cloneable {
 		}
 
 		for (State state : eclosure.getDone()) {
+			boolean accepting = state.isAccepting();
+			boolean silent = state.isSilent();
+
+			WorkSet<State> forward = new WorkSet<>();
+			forward.add(state);
+			while (!forward.isEmpty()) {
+				State next = forward.remove();
+				accepting |= next.isAccepting();
+				silent &= next.isSilent();
+
+				for (Transition transition : next.out()) {
+					if (transition instanceof EpsilonTransition) {
+						forward.add(transition.getTarget());
+					}
+				}
+			}
+
 			state.setAccepting(accepting);
 			state.setSilent(silent);
 		}
@@ -609,7 +621,7 @@ public class NFA implements Cloneable {
 			target.disconnect();
 		}
 		for (State origin : origins.getDone()) {
-			if (origin.out().isEmpty()) {
+			if (origin.out().isEmpty() && !origin.isAccepting()) {
 				origin.disconnect();
 			}
 		}

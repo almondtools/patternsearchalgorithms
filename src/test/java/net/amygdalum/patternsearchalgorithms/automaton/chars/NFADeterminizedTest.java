@@ -294,6 +294,31 @@ public class NFADeterminizedTest {
 		assertThat(matchSamples(nfa, "And God ......take them away"), empty());
 	}
 
+	@Test
+	public void testMatchOptionalContainingLoop() throws Exception {
+		NFA a_star_b_question = automatonOf(nfaBuilder.matchOptional(nfaBuilder.matchConcatenation(asList(
+			nfaBuilder.matchStarLoop(nfaBuilder.match('a')),
+			nfaBuilder.match('b')))));
+		assertThat(matchSamples(a_star_b_question, ""), contains(""));
+		assertThat(matchSamples(a_star_b_question, "b"), contains("b"));
+		assertThat(matchSamples(a_star_b_question, "ab"), contains("ab"));
+		assertThat(matchSamples(a_star_b_question, "aab"), contains("aab"));
+		assertThat(matchSamples(a_star_b_question, "a"), empty());
+		assertThat(matchSamples(a_star_b_question, "aa"), empty());
+	}
+
+	@Test
+	public void testMatchPattern3() throws Exception {
+		RegexParser parser = new RegexParser("a(.*B)?");
+		RegexNode node = parser.parse();
+		NFA nfa = automatonOf(nfaBuilder.build(node));
+		assertThat(matchSamples(nfa, "a"), contains("a"));
+		assertThat(matchSamples(nfa, "aB"), contains("aB"));
+		assertThat(matchSamples(nfa, "axxB"), contains("axxB"));
+		assertThat(matchSamples(nfa, "aa"), empty());
+		assertThat(matchSamples(nfa, "aaa"), empty());
+	}
+
 	private static NFA automatonOf(NFA nfa) {
 		nfa.determinize();
 		return nfa;

@@ -105,11 +105,15 @@ public class SimpleLongestOverlappingMatcher implements Matcher {
 			} else {
 				groups.update(localstart, end);
 			}
-		} else {
+		} else if (groups.getStart() != localstart) {
 			groups.reset();
 		}
 		if (!groups.invalid()) {
-			input.move(groups.getEnd());
+			if (groups.getEnd() > localstart) {
+				input.move(localstart + 1);
+			} else {
+				input.move(groups.getEnd());
+			}
 			return true;
 		}
 		return false;

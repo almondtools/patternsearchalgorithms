@@ -85,34 +85,31 @@ public class SimpleAllOverlappingMatcher implements Matcher {
 		} else {
 			groups.reset();
 		}
-		while (!input.finished() && state >= 0) {
-			byte b = input.next();
-			state = matcher.next(state, b);
-			if (matcher.accept(state)) {
-				groups.update(localstart, input.current());
-				nextstate = state;
-				nextpos = localstart;
-				return true;
-			} else if (state == -1) {
-				localstart = localstart + 1;
-				input.move(localstart);
-				state = matcher.start;
+		while (state >= 0) {
+			if (!input.finished()) {
+				byte b = input.next();
+				state = matcher.next(state, b);
 				if (matcher.accept(state)) {
-					groups.update(localstart, localstart);
+					groups.update(localstart, input.current());
 					nextstate = state;
 					nextpos = localstart;
 					return true;
+				} else if (state >= 0) {
+					continue;
 				}
-				continue;
 			}
-		}
-		if (matcher.accept(state)) {
-			long end = input.current();
-			if (groups.getStart() == end && groups.getEnd() == end) {
+			if (input.finished() && localstart >= input.current()) {
 				return false;
 			}
-			groups.update(localstart, end);
-			return true;
+			localstart = localstart + 1;
+			input.move(localstart);
+			state = matcher.start;
+			if (matcher.accept(state)) {
+				groups.update(localstart, localstart);
+				nextstate = state;
+				nextpos = localstart;
+				return true;
+			}
 		}
 		return false;
 	}
